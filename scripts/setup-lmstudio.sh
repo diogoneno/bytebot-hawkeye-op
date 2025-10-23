@@ -161,7 +161,8 @@ sed -i.tmp '/# LMStudio VLM models (auto-discovered)/,/^litellm_settings:/{ /^li
 sed -i.tmp '/# Add local models via LMStudio/,/^litellm_settings:/{ /^litellm_settings:/!d; }' "$CONFIG_FILE"
 
 # Insert new models before litellm_settings
-sed -i.tmp '/^litellm_settings:/i\  # LMStudio VLM models (auto-discovered on '$(date +"%Y-%m-%d %H:%M:%S")')' "$CONFIG_FILE"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+sed -i.tmp '/^litellm_settings:/i\  # LMStudio VLM models (auto-discovered on '"${TIMESTAMP}"')' "$CONFIG_FILE"
 sed -i.tmp "/# LMStudio VLM models/r $TEMP_MODELS" "$CONFIG_FILE"
 
 rm -f "${CONFIG_FILE}.tmp" "$TEMP_MODELS"
