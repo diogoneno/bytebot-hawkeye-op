@@ -56,7 +56,16 @@ interface ScreenshotResponse {
   zoomLevel?: number;
 }
 
-const BYTEBOT_DESKTOP_BASE_URL = process.env.BYTEBOT_DESKTOP_BASE_URL as string;
+// Multi-platform desktop support
+const BYTEBOT_DESKTOP_PLATFORM = process.env.BYTEBOT_DESKTOP_PLATFORM || 'linux';
+const BYTEBOT_DESKTOP_LINUX_URL = process.env.BYTEBOT_DESKTOP_LINUX_URL || 'http://bytebot-desktop:9990';
+const BYTEBOT_DESKTOP_WINDOWS_URL = process.env.BYTEBOT_DESKTOP_WINDOWS_URL || 'http://omnibox-adapter:5001';
+
+// Select desktop URL based on platform
+const BYTEBOT_DESKTOP_BASE_URL = BYTEBOT_DESKTOP_PLATFORM === 'windows'
+  ? BYTEBOT_DESKTOP_WINDOWS_URL
+  : (process.env.BYTEBOT_DESKTOP_BASE_URL || BYTEBOT_DESKTOP_LINUX_URL);
+
 const BYTEBOT_LLM_PROXY_URL = process.env.BYTEBOT_LLM_PROXY_URL as
   | string
   | undefined;

@@ -16,8 +16,75 @@ echo -e "${BLUE}   Starting Bytebot Hawkeye Stack${NC}"
 echo -e "${BLUE}================================================${NC}"
 echo ""
 
+# Interactive Platform Selection
+echo -e "${BLUE}Desktop Platform Selection:${NC}"
+echo "  1) Linux Desktop (default - via bytebotd)"
+echo "  2) Windows 11 Desktop (via OmniBox)"
+echo ""
+read -p "Select desktop platform [1]: " platform_choice
+
+case "${platform_choice:-1}" in
+    1)
+        DESKTOP_PLATFORM="linux"
+        echo -e "${GREEN}✓ Using Linux Desktop${NC}"
+        ;;
+    2)
+        DESKTOP_PLATFORM="windows"
+        echo -e "${GREEN}✓ Using Windows 11 Desktop${NC}"
+        ;;
+    *)
+        DESKTOP_PLATFORM="linux"
+        echo -e "${GREEN}✓ Using Linux Desktop (default)${NC}"
+        ;;
+esac
+
+echo ""
+
 # Change to docker directory
 cd docker
+
+# Update .env.defaults with selected platform
+if [ -f ".env.defaults" ]; then
+    if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" .env.defaults; then
+        # Update existing entry
+        sed -i.bak "s/^BYTEBOT_DESKTOP_PLATFORM=.*/BYTEBOT_DESKTOP_PLATFORM=$DESKTOP_PLATFORM/" .env.defaults
+        rm -f .env.defaults.bak
+    else
+        # Add new entry
+        echo "" >> .env.defaults
+        echo "# Desktop Platform (set by start-stack.sh)" >> .env.defaults
+        echo "BYTEBOT_DESKTOP_PLATFORM=$DESKTOP_PLATFORM" >> .env.defaults
+    fi
+fi
+
+# Sync platform settings from .env.defaults to .env (Docker Compose reads .env)
+if [ -f ".env" ] && [ -f ".env.defaults" ]; then
+    # Copy BYTEBOT_DESKTOP_PLATFORM
+    if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" .env.defaults; then
+        PLATFORM_VALUE=$(grep "^BYTEBOT_DESKTOP_PLATFORM=" .env.defaults | cut -d= -f2-)
+        if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" .env; then
+            sed -i.bak "s|^BYTEBOT_DESKTOP_PLATFORM=.*|BYTEBOT_DESKTOP_PLATFORM=$PLATFORM_VALUE|" .env
+            rm .env.bak
+        else
+            echo "BYTEBOT_DESKTOP_PLATFORM=$PLATFORM_VALUE" >> .env
+        fi
+    fi
+
+    # Copy desktop URLs
+    for VAR in BYTEBOT_DESKTOP_LINUX_URL BYTEBOT_DESKTOP_WINDOWS_URL; do
+        if grep -q "^${VAR}=" .env.defaults; then
+            VALUE=$(grep "^${VAR}=" .env.defaults | cut -d= -f2-)
+            if grep -q "^${VAR}=" .env; then
+                sed -i.bak "s|^${VAR}=.*|${VAR}=$VALUE|" .env
+                rm .env.bak
+            else
+                echo "${VAR}=$VALUE" >> .env
+            fi
+        fi
+    done
+fi
+
+cd ..
 
 # Determine which compose file to use
 if [[ -f ".env" ]]; then
@@ -65,18 +132,38 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
             fi
         fi
 
+        # LMStudio Configuration (optional)
+        echo ""
+        echo -e "${BLUE}LMStudio Configuration:${NC}"
+        echo "Configure local VLM models from LMStudio?"
+        read -p "[y/N]: " setup_lmstudio
+
+        if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
+            cd ..
+            ./scripts/setup-lmstudio.sh
+            cd docker
+        fi
+
         echo ""
         echo -e "${BLUE}Starting Docker stack (without OmniParser container)...${NC}"
+
+        # Determine profile based on platform selection
+        PROFILE_ARG=""
+        if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+            PROFILE_ARG="--profile omnibox"
+            echo -e "${BLUE}Including Windows desktop (OmniBox) services...${NC}"
+        fi
 
         # Start all services except OmniParser container
         # --no-deps prevents starting dependent services (bytebot-omniparser)
         # Add --build flag to rebuild if code changed
-        docker compose -f $COMPOSE_FILE up -d --build --no-deps \
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE up -d --build --no-deps \
             bytebot-desktop \
             bytebot-agent \
             bytebot-ui \
             postgres \
-            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "") \
+            $([ "$DESKTOP_PLATFORM" = "windows" ] && echo "omnibox omnibox-adapter" || echo "")
 
     else
         echo -e "${YELLOW}⚠ Native OmniParser not running${NC}"
@@ -122,17 +209,38 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
             fi
         fi
 
+        # LMStudio Configuration (optional)
+        echo ""
+        echo -e "${BLUE}LMStudio Configuration:${NC}"
+        echo "Configure local VLM models from LMStudio?"
+        read -p "[y/N]: " setup_lmstudio
+
+        if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
+            cd ..
+            ./scripts/setup-lmstudio.sh
+            cd docker
+        fi
+
         # Start stack without container
         echo ""
         echo -e "${BLUE}Starting Docker stack (without OmniParser container)...${NC}"
+
+        # Determine profile based on platform selection
+        PROFILE_ARG=""
+        if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+            PROFILE_ARG="--profile omnibox"
+            echo -e "${BLUE}Including Windows desktop (OmniBox) services...${NC}"
+        fi
+
         # --no-deps prevents starting dependent services (bytebot-omniparser)
         # Add --build flag to rebuild if code changed
-        docker compose -f $COMPOSE_FILE up -d --build --no-deps \
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE up -d --build --no-deps \
             bytebot-desktop \
             bytebot-agent \
             bytebot-ui \
             postgres \
-            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "") \
+            $([ "$DESKTOP_PLATFORM" = "windows" ] && echo "omnibox omnibox-adapter" || echo "")
 
         # Exit here so we don't run the code below
         echo ""
@@ -167,9 +275,29 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
         nvidia-smi --query-gpu=name --format=csv,noheader | head -1
     fi
 
+    # LMStudio Configuration (optional)
+    cd ..
+    echo ""
+    echo -e "${BLUE}LMStudio Configuration:${NC}"
+    echo "Configure local VLM models from LMStudio?"
+    read -p "[y/N]: " setup_lmstudio
+
+    if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
+        ./scripts/setup-lmstudio.sh
+    fi
+    cd docker
+
     echo ""
     echo -e "${BLUE}Starting full Docker stack (includes OmniParser container)...${NC}"
-    docker compose -f $COMPOSE_FILE up -d --build
+
+    # Determine profile based on platform selection
+    PROFILE_ARG=""
+    if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+        PROFILE_ARG="--profile omnibox"
+        echo -e "${BLUE}Including Windows desktop (OmniBox) services...${NC}"
+    fi
+
+    docker compose $PROFILE_ARG -f $COMPOSE_FILE up -d --build
 fi
 
 # Wait for services to be ready

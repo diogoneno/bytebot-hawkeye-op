@@ -111,11 +111,22 @@ export class TasksController {
 
         // Map proxy response to BytebotAgentModel format
         const models: BytebotAgentModel[] = proxyModelList.map((model: any) => {
+          // Enhanced VLM detection with multiple fallback checks
+          const modelName = model.model_name || '';
+          const modelId = model.litellm_params?.model || '';
+
+          // Known VLM patterns in model names
+          const vlmPatterns = /vl|vision|visual|multimodal|llava|cogvlm|internvl|ui-tars|qwen.*vl/i;
+
           const supportsVision =
+            // Explicit flags
             model.supports_vision === true ||
             model.model_info?.supports_vision === true ||
             model.litellm_params?.supports_vision === true ||
-            model.litellm_params?.supports_image_input === true;
+            model.litellm_params?.supports_image_input === true ||
+            // Model name pattern matching (for LMStudio models)
+            vlmPatterns.test(modelName) ||
+            vlmPatterns.test(modelId);
 
           return {
             provider: 'proxy',

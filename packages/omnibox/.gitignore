@@ -1,0 +1,15 @@
+# Windows ISO files (large binary files)
+iso/
+*.iso
+
+# VM storage
+storage/
+*.qcow2
+*.img
+
+# OEM and setup scripts (may contain sensitive data)
+oem/
+setup/
+
+# Docker volumes
+volumes/

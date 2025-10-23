@@ -1,0 +1,68 @@
+# OmniBox Windows 11 Desktop Environment
+# Based on Microsoft OmniParser's OmniBox
+
+version: '3.8'
+
+services:
+  omnibox:
+    # Use Microsoft's pre-built Windows container image
+    # Alternative: build from source using ./Dockerfile
+    image: dockurr/windows:latest
+    # build: .
+
+    container_name: bytebot-omnibox
+
+    privileged: true  # Required for KVM virtualization
+
+    environment:
+      # Windows 11 Enterprise
+      VERSION: "win11e"
+      # Allocate resources
+      RAM_SIZE: "8G"
+      CPU_CORES: "4"
+      DISK_SIZE: "64G"
+      # Computer Use API
+      API_PORT: "5000"
+
+    ports:
+      - "8006:8006"  # Web viewer
+      - "3389:3389"  # RDP
+      - "5000:5000"  # Computer Use API
+      - "5900:5900"  # VNC
+
+    devices:
+      - /dev/kvm      # KVM virtualization
+      - /dev/net/tun  # Network tunneling
+
+    cap_add:
+      - NET_ADMIN  # Network administration
+
+    volumes:
+      # Windows ISO (download Windows 11 Enterprise Evaluation and place here)
+      - ./iso:/storage/iso:ro
+      # OEM setup scripts (first boot customization)
+      - ./oem:/storage/oem:ro
+      # Windows setup files
+      - ./setup:/storage/setup:ro
+      # Persistent VM storage
+      - omnibox-data:/storage
+
+    networks:
+      - bytebot-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s  # Windows VM takes time to boot
+
+volumes:
+  omnibox-data:
+    driver: local
+
+networks:
+  bytebot-network:
+    external: true  # Use shared Bytebot network

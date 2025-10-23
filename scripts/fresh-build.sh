@@ -47,8 +47,38 @@ esac
 echo -e "${BLUE}Platform: $PLATFORM ($ARCH)${NC}"
 echo ""
 
+# Interactive Platform Selection
+echo -e "${BLUE}Step 1: Desktop Platform Selection${NC}"
+echo "Which desktop environment would you like to use?"
+echo "  1) Linux Desktop (default - faster, lighter)"
+echo "  2) Windows 11 Desktop (via OmniBox - requires KVM)"
+echo ""
+read -p "Select [1]: " platform_choice
+
+case "${platform_choice:-1}" in
+    1)
+        DESKTOP_PLATFORM="linux"
+        echo -e "${GREEN}✓ Using Linux Desktop${NC}"
+        ;;
+    2)
+        DESKTOP_PLATFORM="windows"
+        echo -e "${GREEN}✓ Using Windows 11 Desktop${NC}"
+        # Check if OmniBox needs setup
+        if [ ! -f "packages/omnibox/.setup_complete" ]; then
+            echo -e "${BLUE}Setting up OmniBox for first time...${NC}"
+            ./scripts/setup-omnibox.sh
+            touch packages/omnibox/.setup_complete
+        fi
+        ;;
+    *)
+        DESKTOP_PLATFORM="linux"
+        echo -e "${GREEN}✓ Using Linux Desktop (default)${NC}"
+        ;;
+esac
+echo ""
+
 # Stop any running services
-echo -e "${BLUE}Step 1: Stopping existing services...${NC}"
+echo -e "${BLUE}Step 2: Stopping existing services...${NC}"
 if [ -f "scripts/stop-stack.sh" ]; then
     ./scripts/stop-stack.sh || true
 fi
@@ -64,8 +94,52 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 fi
 echo ""
 
+# Update .env.defaults with selected platform
+if [ -f "docker/.env.defaults" ]; then
+    if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" docker/.env.defaults; then
+        # Update existing entry
+        sed -i.bak "s/^BYTEBOT_DESKTOP_PLATFORM=.*/BYTEBOT_DESKTOP_PLATFORM=$DESKTOP_PLATFORM/" docker/.env.defaults
+        rm -f docker/.env.defaults.bak
+    else
+        # Add new entry
+        echo "" >> docker/.env.defaults
+        echo "# Desktop Platform (set by fresh-build.sh)" >> docker/.env.defaults
+        echo "BYTEBOT_DESKTOP_PLATFORM=$DESKTOP_PLATFORM" >> docker/.env.defaults
+    fi
+    echo -e "${GREEN}✓ Platform configuration saved to .env.defaults${NC}"
+fi
+
+# Sync platform settings from .env.defaults to .env (Docker Compose reads .env)
+if [ -f "docker/.env" ] && [ -f "docker/.env.defaults" ]; then
+    # Copy BYTEBOT_DESKTOP_PLATFORM
+    if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" docker/.env.defaults; then
+        PLATFORM_VALUE=$(grep "^BYTEBOT_DESKTOP_PLATFORM=" docker/.env.defaults | cut -d= -f2-)
+        if grep -q "^BYTEBOT_DESKTOP_PLATFORM=" docker/.env; then
+            sed -i.bak "s|^BYTEBOT_DESKTOP_PLATFORM=.*|BYTEBOT_DESKTOP_PLATFORM=$PLATFORM_VALUE|" docker/.env
+            rm docker/.env.bak
+        else
+            echo "BYTEBOT_DESKTOP_PLATFORM=$PLATFORM_VALUE" >> docker/.env
+        fi
+    fi
+
+    # Copy desktop URLs
+    for VAR in BYTEBOT_DESKTOP_LINUX_URL BYTEBOT_DESKTOP_WINDOWS_URL; do
+        if grep -q "^${VAR}=" docker/.env.defaults; then
+            VALUE=$(grep "^${VAR}=" docker/.env.defaults | cut -d= -f2-)
+            if grep -q "^${VAR}=" docker/.env; then
+                sed -i.bak "s|^${VAR}=.*|${VAR}=$VALUE|" docker/.env
+                rm docker/.env.bak
+            else
+                echo "${VAR}=$VALUE" >> docker/.env
+            fi
+        fi
+    done
+    echo -e "${GREEN}✓ Platform settings synced to .env${NC}"
+fi
+echo ""
+
 # Clean problematic node_modules (OpenCV build artifacts)
-echo -e "${BLUE}Step 2: Cleaning node_modules...${NC}"
+echo -e "${BLUE}Step 3: Cleaning node_modules...${NC}"
 if [ -d "node_modules/@u4/opencv-build" ]; then
     echo "Removing OpenCV build artifacts..."
     rm -rf node_modules/@u4/opencv-build
@@ -80,7 +154,7 @@ echo -e "${GREEN}✓ Cleaned node_modules${NC}"
 echo ""
 
 # Build shared package first (required dependency)
-echo -e "${BLUE}Step 3: Building shared package...${NC}"
+echo -e "${BLUE}Step 4: Building shared package...${NC}"
 cd packages/shared
 npm install
 npm run build
@@ -89,7 +163,7 @@ cd ../..
 echo ""
 
 # Build bytebot-cv package (depends on shared)
-echo -e "${BLUE}Step 4: Building bytebot-cv package...${NC}"
+echo -e "${BLUE}Step 5: Building bytebot-cv package...${NC}"
 cd packages/bytebot-cv
 # Clean local node_modules if npm install fails
 if [ -d "node_modules" ]; then
@@ -103,7 +177,7 @@ cd ../..
 echo ""
 
 # Setup OmniParser if needed
-echo -e "${BLUE}Step 5: Setting up OmniParser...${NC}"
+echo -e "${BLUE}Step 6: Setting up OmniParser...${NC}"
 if [ -f "scripts/setup-omniparser.sh" ]; then
     ./scripts/setup-omniparser.sh
 else
@@ -111,9 +185,19 @@ else
 fi
 echo ""
 
+# LMStudio Configuration (optional)
+echo -e "${BLUE}Step 6.5: LMStudio Model Discovery (optional)${NC}"
+echo "LMStudio allows running local VLM models on your network."
+read -p "Configure LMStudio models? [y/N]: " setup_lmstudio
+
+if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
+    ./scripts/setup-lmstudio.sh
+fi
+echo ""
+
 # Start OmniParser for Apple Silicon (native with MPS GPU)
 if [[ "$ARCH" == "arm64" ]] && [[ "$PLATFORM" == "macOS" ]]; then
-    echo -e "${BLUE}Step 6: Starting native OmniParser (Apple Silicon with MPS GPU)...${NC}"
+    echo -e "${BLUE}Step 7: Starting native OmniParser (Apple Silicon with MPS GPU)...${NC}"
     if [ -f "scripts/start-omniparser.sh" ]; then
         ./scripts/start-omniparser.sh
         echo ""
@@ -131,7 +215,7 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$PLATFORM" == "macOS" ]]; then
     fi
     echo ""
 else
-    echo -e "${BLUE}Step 6: OmniParser will run in Docker container${NC}"
+    echo -e "${BLUE}Step 7: OmniParser will run in Docker container${NC}"
     if [[ "$PLATFORM" == "Windows (WSL)" ]] || [[ "$PLATFORM" == "Linux" ]]; then
         echo -e "${BLUE}(CUDA GPU acceleration if available)${NC}"
     fi
@@ -139,7 +223,7 @@ else
 fi
 
 # Build and start Docker stack with fresh build
-echo -e "${BLUE}Step 7: Building Docker containers (this may take several minutes)...${NC}"
+echo -e "${BLUE}Step 8: Building Docker containers (this may take several minutes)...${NC}"
 echo ""
 
 cd docker
@@ -156,28 +240,37 @@ fi
 # Build services - now unified across all platforms with x86_64 architecture
 echo -e "${BLUE}Building services (forced x86_64 architecture for consistency)...${NC}"
 
+# Determine profile based on platform selection
+PROFILE_ARG=""
+if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+    PROFILE_ARG="--profile omnibox"
+    echo -e "${BLUE}Including Windows desktop (OmniBox) services...${NC}"
+fi
+
 if [[ "$ARCH" == "arm64" ]] && [[ "$PLATFORM" == "macOS" ]]; then
     echo -e "${YELLOW}Note: Running via Rosetta 2 on Apple Silicon${NC}"
     echo -e "${BLUE}Building without OmniParser container (using native)...${NC}"
     # Build without OmniParser container (running natively with MPS)
-    docker compose -f $COMPOSE_FILE build \
+    docker compose $PROFILE_ARG -f $COMPOSE_FILE build \
         bytebot-desktop \
         bytebot-agent \
         bytebot-ui \
-        $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+        $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "") \
+        $([ "$DESKTOP_PLATFORM" = "windows" ] && echo "omnibox omnibox-adapter" || echo "")
 
     echo ""
     echo -e "${BLUE}Starting services...${NC}"
-    docker compose -f $COMPOSE_FILE up -d --no-deps \
+    docker compose $PROFILE_ARG -f $COMPOSE_FILE up -d --no-deps \
         bytebot-desktop \
         bytebot-agent \
         bytebot-ui \
         postgres \
-        $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+        $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "") \
+        $([ "$DESKTOP_PLATFORM" = "windows" ] && echo "omnibox omnibox-adapter" || echo "")
 else
     # Linux and Windows (WSL) - build everything including OmniParser
     echo -e "${BLUE}Building all services including OmniParser...${NC}"
-    docker compose -f $COMPOSE_FILE up -d --build
+    docker compose $PROFILE_ARG -f $COMPOSE_FILE up -d --build
 fi
 
 cd ..
