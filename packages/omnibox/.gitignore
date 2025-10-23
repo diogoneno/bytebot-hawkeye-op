@@ -13,3 +13,6 @@ setup/
 
 # Docker volumes
 volumes/
+
+# Setup marker file
+.setup_complete
