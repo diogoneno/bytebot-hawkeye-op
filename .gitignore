@@ -189,6 +189,11 @@ agent/.classpath
 .temp
 .tmp
 
+# backup files
+*.backup
+*.backup.*
+*.bak
+
 # Runtime data
 pids
 *.pid
