@@ -87,9 +87,9 @@ fi
 cd ..
 
 # Determine which compose file to use
-if [[ -f ".env" ]]; then
+if [[ -f "docker/.env" ]]; then
     # Check if using proxy or standard stack
-    if [[ -f "docker-compose.proxy.yml" ]]; then
+    if [[ -f "docker/docker-compose.proxy.yml" ]]; then
         COMPOSE_FILE="docker-compose.proxy.yml"
         echo -e "${BLUE}Using: Proxy Stack (with LiteLLM)${NC}"
     else
@@ -192,21 +192,21 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
         echo -e "${GREEN}✓ Native OmniParser detected on port 9989${NC}"
 
         # Update .env.defaults (system defaults) to use native OmniParser
-        if grep -q "OMNIPARSER_URL=http://bytebot-omniparser:9989" .env.defaults 2>/dev/null; then
+        if grep -q "OMNIPARSER_URL=http://bytebot-omniparser:9989" docker/.env.defaults 2>/dev/null; then
             echo -e "${BLUE}Updating system configuration to use native OmniParser...${NC}"
-            sed -i.bak 's|OMNIPARSER_URL=http://bytebot-omniparser:9989|OMNIPARSER_URL=http://host.docker.internal:9989|' .env.defaults
-            rm .env.defaults.bak
+            sed -i.bak 's|OMNIPARSER_URL=http://bytebot-omniparser:9989|OMNIPARSER_URL=http://host.docker.internal:9989|' docker/.env.defaults
+            rm docker/.env.defaults.bak
         fi
 
         # Copy OMNIPARSER settings from .env.defaults to .env (Docker Compose reads .env)
-        if [ -f ".env" ]; then
+        if [ -f "docker/.env" ]; then
             echo -e "${BLUE}Syncing OmniParser settings to .env...${NC}"
             # Update or add OMNIPARSER_URL in .env
-            if grep -q "^OMNIPARSER_URL=" .env; then
-                sed -i.bak 's|^OMNIPARSER_URL=.*|OMNIPARSER_URL=http://host.docker.internal:9989|' .env
-                rm .env.bak
+            if grep -q "^OMNIPARSER_URL=" docker/.env; then
+                sed -i.bak 's|^OMNIPARSER_URL=.*|OMNIPARSER_URL=http://host.docker.internal:9989|' docker/.env
+                rm docker/.env.bak
             else
-                echo "OMNIPARSER_URL=http://host.docker.internal:9989" >> .env
+                echo "OMNIPARSER_URL=http://host.docker.internal:9989" >> docker/.env
             fi
         fi
 
@@ -272,19 +272,19 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
         fi
 
         # Update .env.defaults (system defaults) to use native OmniParser
-        if grep -q "OMNIPARSER_URL=http://bytebot-omniparser:9989" .env.defaults 2>/dev/null; then
-            sed -i.bak 's|OMNIPARSER_URL=http://bytebot-omniparser:9989|OMNIPARSER_URL=http://host.docker.internal:9989|' .env.defaults
-            rm .env.defaults.bak
+        if grep -q "OMNIPARSER_URL=http://bytebot-omniparser:9989" docker/.env.defaults 2>/dev/null; then
+            sed -i.bak 's|OMNIPARSER_URL=http://bytebot-omniparser:9989|OMNIPARSER_URL=http://host.docker.internal:9989|' docker/.env.defaults
+            rm docker/.env.defaults.bak
         fi
 
         # Copy OMNIPARSER settings from .env.defaults to .env (Docker Compose reads .env)
-        if [ -f ".env" ]; then
+        if [ -f "docker/.env" ]; then
             # Update or add OMNIPARSER_URL in .env
-            if grep -q "^OMNIPARSER_URL=" .env; then
-                sed -i.bak 's|^OMNIPARSER_URL=.*|OMNIPARSER_URL=http://host.docker.internal:9989|' .env
-                rm .env.bak
+            if grep -q "^OMNIPARSER_URL=" docker/.env; then
+                sed -i.bak 's|^OMNIPARSER_URL=.*|OMNIPARSER_URL=http://host.docker.internal:9989|' docker/.env
+                rm docker/.env.bak
             else
-                echo "OMNIPARSER_URL=http://host.docker.internal:9989" >> .env
+                echo "OMNIPARSER_URL=http://host.docker.internal:9989" >> docker/.env
             fi
         fi
 
