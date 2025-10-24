@@ -62,13 +62,17 @@ export class ProxyService implements BytebotAgentService {
       messages,
     );
     try {
+      // Detect reasoning models (o1/o3/gpt-5 series) that support reasoning_effort
+      const isReasoningModel = /\bo1\b|\bo3\b|gpt-5/i.test(model);
+
       // Prepare the Chat Completion request
       const completionRequest: OpenAI.Chat.ChatCompletionCreateParams = {
         model,
         messages: chatMessages,
         max_tokens: 8192,
         ...(useTools && { tools: proxyTools }),
-        reasoning_effort: 'high',
+        // Only send reasoning_effort for o1/o3/gpt-5 models (DeepSeek R1 uses different param)
+        ...(isReasoningModel && { reasoning_effort: 'high' }),
       };
 
       // Make the API call

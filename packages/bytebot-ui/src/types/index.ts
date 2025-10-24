@@ -27,6 +27,7 @@ export interface Model {
   name: string;
   title: string;
   supportsVision?: boolean;
+  supportsReasoning?: boolean;
 }
 
 // Task related enums and types

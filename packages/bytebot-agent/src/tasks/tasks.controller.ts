@@ -128,12 +128,19 @@ export class TasksController {
             vlmPatterns.test(modelName) ||
             vlmPatterns.test(modelId);
 
+          // Detect reasoning models (o1/o3/gpt-5/deepseek-r1 series)
+          const reasoningPatterns = /\bo1\b|\bo3\b|gpt-5|deepseek.*r1|\br1\b|reasoning|thinking/i;
+          const supportsReasoning =
+            reasoningPatterns.test(modelName) ||
+            reasoningPatterns.test(modelId);
+
           return {
             provider: 'proxy',
             name: model.litellm_params.model,
             title: model.model_name,
             contextWindow: 128000,
             supportsVision,
+            supportsReasoning,
           } satisfies BytebotAgentModel;
         });
 

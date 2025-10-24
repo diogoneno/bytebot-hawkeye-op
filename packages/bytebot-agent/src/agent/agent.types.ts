@@ -26,6 +26,7 @@ export interface BytebotAgentModel {
   title: string;
   contextWindow?: number;
   supportsVision?: boolean;
+  supportsReasoning?: boolean;
 }
 
 export class BytebotAgentInterrupt extends Error {
