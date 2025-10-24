@@ -178,10 +178,10 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
         read -p "[y/N]: " setup_lmstudio
 
         if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
-            cd ..
             ./scripts/setup-lmstudio.sh
-            cd docker
         fi
+
+        cd docker
 
         echo ""
         echo -e "${BLUE}Starting Docker stack (without OmniParser container)...${NC}"
@@ -210,10 +210,9 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
         echo ""
 
         # Check if it's been set up
-        if [[ ! -d "../packages/bytebot-omniparser/venv" ]] && [[ ! -d "../packages/bytebot-omniparser/weights/icon_detect" ]]; then
+        if [[ ! -d "packages/bytebot-omniparser/venv" ]] && [[ ! -d "packages/bytebot-omniparser/weights/icon_detect" ]]; then
             echo -e "${BLUE}→ Setting up native OmniParser automatically (recommended for M4 GPU)...${NC}"
             echo ""
-            cd ..
             ./scripts/setup-omniparser.sh
             echo ""
             echo -e "${BLUE}→ Starting native OmniParser...${NC}"
@@ -221,15 +220,12 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
             echo ""
             echo "Waiting for OmniParser to be ready..."
             sleep 3
-            cd docker
         else
             echo -e "${BLUE}→ Starting native OmniParser automatically...${NC}"
-            cd ..
             ./scripts/start-omniparser.sh
             echo ""
             echo "Waiting for OmniParser to be ready..."
             sleep 3
-            cd docker
         fi
 
         # Update .env.defaults (system defaults) to use native OmniParser
@@ -245,10 +241,10 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
         read -p "[y/N]: " setup_lmstudio
 
         if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
-            cd ..
             ./scripts/setup-lmstudio.sh
-            cd docker
         fi
+
+        cd docker
 
         # Start stack without container
         echo ""
@@ -306,7 +302,6 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
     fi
 
     # LMStudio Configuration (optional)
-    cd ..
     echo ""
     echo -e "${BLUE}LMStudio Configuration:${NC}"
     echo "Configure local VLM models from LMStudio?"
@@ -315,6 +310,7 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
     if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
         ./scripts/setup-lmstudio.sh
     fi
+
     cd docker
 
     echo ""
