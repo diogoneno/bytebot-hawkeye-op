@@ -39,7 +39,7 @@
 
 ## ⭐ What's New
 
-**Latest Hawkeye enhancements (October 2025):**
+**Latest Hawkeye enhancements (January 2025):**
 
 - **61 AI Models** - Comprehensive catalog across all major providers (up from 45)
 - **15 Reasoning Models** - GPT-5 series, DeepSeek R1, o1/o3, Qwen thinking variants with amber UI badges
