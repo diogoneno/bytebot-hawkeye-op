@@ -25,6 +25,9 @@ export class TrajectoryRecorderService {
   // In-memory trajectory tracking (per task)
   private activeTrajectories = new Map<string, TrajectoryData>();
 
+  // Pause state (can be toggled at runtime)
+  private paused = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -67,6 +70,7 @@ export class TrajectoryRecorderService {
    */
   shouldRecord(modelProvider: string): boolean {
     if (!this.config.enabled) return false;
+    if (this.paused) return false;
 
     // If no specific providers configured, record all
     if (this.config.modelProviders.length === 0) return true;
@@ -333,5 +337,28 @@ export class TrajectoryRecorderService {
       successRate: total > 0 ? successCount / total : 0,
       averageQuality: qualityStats._avg.qualityScore || 0,
     };
+  }
+
+  /**
+   * Pause trajectory recording (can be resumed later)
+   */
+  pause(): void {
+    this.paused = true;
+    this.logger.log('Trajectory recording paused');
+  }
+
+  /**
+   * Resume trajectory recording
+   */
+  resume(): void {
+    this.paused = false;
+    this.logger.log('Trajectory recording resumed');
+  }
+
+  /**
+   * Check if recording is currently paused
+   */
+  isPaused(): boolean {
+    return this.paused;
   }
 }

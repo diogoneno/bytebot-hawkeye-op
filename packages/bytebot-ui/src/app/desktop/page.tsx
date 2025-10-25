@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { DesktopContainer } from "@/components/ui/desktop-container";
 import { CVActivityIndicator } from "@/components/cv/CVActivityIndicator";
 import { LearningMetrics } from "@/components/learning/LearningMetrics";
+import { TrajectoryRecordingIndicator } from "@/components/learning/TrajectoryRecordingIndicator";
 import { fetchTasks } from "@/utils/taskUtils";
 import { Task, TaskStatus } from "@/types";
 import { getTaskModelLabel } from "@/components/tasks/TaskItem";
@@ -86,6 +87,7 @@ export default function DesktopPage() {
             </div>
             <CVActivityIndicator />
             <LearningMetrics />
+            <TrajectoryRecordingIndicator />
           </div>
 
           {/* Center - Desktop view (primary focus) */}
