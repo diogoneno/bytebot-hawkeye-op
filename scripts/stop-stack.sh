@@ -27,6 +27,18 @@ docker compose -f $COMPOSE_FILE down
 echo ""
 echo -e "${GREEN}✓ Main services stopped${NC}"
 
+# Check for Linux desktop container (uses the 'linux' profile)
+if docker ps -a --format '{{.Names}}' | grep -q "bytebot-desktop"; then
+    echo ""
+    echo -e "${BLUE}Stopping Linux desktop...${NC}"
+
+    # Stop Linux desktop directly (uses profiles and won't stop with normal down)
+    docker stop bytebot-desktop 2>/dev/null || true
+    docker rm bytebot-desktop 2>/dev/null || true
+
+    echo -e "${GREEN}✓ Linux desktop stopped and removed${NC}"
+fi
+
 # Check for OmniBox containers (these use the 'omnibox' profile)
 if docker ps -a --format '{{.Names}}' | grep -q "bytebot-omnibox"; then
     echo ""
