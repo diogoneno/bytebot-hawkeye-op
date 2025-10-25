@@ -51,7 +51,7 @@ def execute(data):
     }), 500
 
 
-execute_impl = execute   # switch to execute_anything to allow any command. Please use with caution only for testing purposes.
+execute_impl = execute_anything   # switch to execute_anything to allow any command. Please use with caution only for testing purposes.
 
 
 parser = argparse.ArgumentParser()
