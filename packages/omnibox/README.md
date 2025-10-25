@@ -131,15 +131,30 @@ See `packages/omnibox-adapter/README.md` for details.
 - Ensure KVM is enabled: `lsmod | grep kvm`
 - Check Docker has privileges: `docker run --privileged`
 
+**Container health check failing:**
+- The health check uses the Windows VM's bridge IP (typically `172.30.0.4`)
+- Check container logs: `docker logs bytebot-omnibox`
+- Verify VM is assigned the expected IP:
+  ```bash
+  docker exec bytebot-omnibox ip addr show eth0
+  ```
+- Test connectivity from within container:
+  ```bash
+  docker exec bytebot-omnibox curl http://172.30.0.4:5000/probe
+  docker exec bytebot-omnibox curl http://172.30.0.3:5000/probe
+  ```
+- If the IP is different, update the health check in `docker/docker-compose.yml` or `docker/docker-compose.proxy.yml`
+
 **Slow performance:**
 - Increase allocated RAM: Set `OMNIBOX_RAM_SIZE=16G` in docker/.env
 - Allocate more CPU cores: Set `OMNIBOX_CPU_CORES=8`
 - Ensure SSD storage for VM disk
 
 **API not responding:**
-- Check container logs: `docker logs omnibox`
-- Verify port 5000 is accessible: `curl http://localhost:5000/health`
+- Check container logs: `docker logs bytebot-omnibox`
+- Verify port 5000 is accessible: `curl http://localhost:5000/probe`
 - Wait for VM boot (can take 2-3 minutes)
+- Check Python server is running inside VM (via VNC at `http://localhost:8006`)
 
 ## Resources
 
