@@ -8,6 +8,7 @@ import {
   PressKeysAction,
   ScrollAction,
   ApplicationAction,
+  ScreenshotCustomRegionAction,
 } from '@bytebot/shared';
 
 /**
@@ -49,6 +50,11 @@ export class ComputerUseService {
 
       case 'application':
         return this.launchApplication(params as ApplicationAction);
+
+      case 'screenshot_custom_region':
+        return this.screenshotCustomRegion(
+          params as ScreenshotCustomRegionAction,
+        );
 
       case 'wait':
         return this.wait(params.duration || 500);
@@ -270,6 +276,114 @@ pyautogui.press('enter')
       height,
       displaySize: { width, height },
     };
+  }
+
+  /**
+   * Capture custom region of screen
+   */
+  async screenshotCustomRegion(
+    params: ScreenshotCustomRegionAction,
+  ): Promise<{ image: string }> {
+    const { x, y, width, height } = params;
+
+    this.logger.debug(
+      `Capturing region: x=${x}, y=${y}, width=${width}, height=${height}`,
+    );
+
+    // Python code to capture full screenshot and crop to region
+    const pythonCode = `
+import pyautogui
+import base64
+from io import BytesIO
+from PIL import Image
+
+# Capture full screenshot
+screenshot = pyautogui.screenshot()
+
+# Crop to region (left, top, right, bottom)
+cropped = screenshot.crop((${x}, ${y}, ${x + width}, ${y + height}))
+
+# Convert to base64
+buffer = BytesIO()
+cropped.save(buffer, format='PNG')
+img_bytes = buffer.getvalue()
+img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+
+# Print to stdout so we can capture it
+print(img_base64)
+`;
+
+    // Execute and capture output
+    const result = await this.executeWithOutput(pythonCode);
+
+    // Extract base64 from output (last line should be the base64)
+    const base64Image = result.trim();
+
+    this.logger.debug(
+      `Captured region (${base64Image.length} chars of base64)`,
+    );
+
+    return {
+      image: base64Image,
+    };
+  }
+
+  /**
+   * Execute Python code and return stdout
+   */
+  private async executeWithOutput(pythonCode: string): Promise<string> {
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeout = parseInt(process.env.OMNIBOX_TIMEOUT || '30000', 10);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const baseUrl = process.env.OMNIBOX_URL || 'http://omnibox:5000';
+      const response = await fetch(`${baseUrl}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: ['python', '-c', pythonCode],
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `OmniBox execute failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const result = await response.json();
+      const elapsed = Date.now() - startTime;
+
+      this.logger.debug(`Executed command in ${elapsed}ms`);
+
+      // Check for errors
+      if (result.status === 'error') {
+        throw new Error(`Python execution error: ${result.message}`);
+      }
+
+      if (result.returncode !== 0) {
+        throw new Error(
+          `Python command failed with code ${result.returncode}: ${result.error}`,
+        );
+      }
+
+      return result.output || '';
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      this.logger.error(
+        `OmniBox execute error after ${elapsed}ms: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**

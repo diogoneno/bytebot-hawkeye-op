@@ -83,7 +83,8 @@ services:
       - "9991:9991"
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bytebotdb}
-      - BYTEBOT_DESKTOP_BASE_URL=${BYTEBOT_DESKTOP_BASE_URL:-http://bytebot-desktop:9990}
+      # Desktop platform variables (BYTEBOT_DESKTOP_*) are defined in .env.defaults
+      - BYTEBOT_DESKTOP_BASE_URL=${BYTEBOT_DESKTOP_BASE_URL}
       - BYTEBOT_LLM_PROXY_URL=${BYTEBOT_LLM_PROXY_URL:-http://bytebot-llm-proxy:4000}
       # API keys as fallback if proxy unavailable
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -260,7 +261,7 @@ services:
     networks:
       - bytebot-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/probe"]
+      test: ["CMD", "curl", "-f", "http://172.30.0.3:5000/probe"]
       interval: 30s
       timeout: 10s
       retries: 5
