@@ -95,4 +95,4 @@ def capture_screen_with_cursor():
     return send_file(img_io, mimetype='image/png')
 
 if __name__ == '__main__':
-    app.run(host="10.0.2.15", port=args.port)
+    app.run(host="0.0.0.0", port=args.port)
