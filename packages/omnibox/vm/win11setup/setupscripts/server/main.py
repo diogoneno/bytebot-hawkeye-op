@@ -79,7 +79,7 @@ def get_setup_status():
 
     try:
         if os.path.exists(status_file):
-            with open(status_file, 'r', encoding='utf-8') as f:
+            with open(status_file, 'r', encoding='utf-8-sig') as f:
                 status = json.load(f)
                 return jsonify(status), 200
         else:

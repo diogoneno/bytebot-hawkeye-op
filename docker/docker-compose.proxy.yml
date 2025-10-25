@@ -261,11 +261,11 @@ services:
     networks:
       - bytebot-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://172.30.0.4:5000/probe"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/probe"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 300s  # Windows setup takes 20-90 minutes on first boot
+      start_period: 600s  # Windows setup takes 20-90 minutes on first boot
     profiles:
       - omnibox  # Only start when explicitly requested
 
