@@ -7,6 +7,48 @@ $toolsFolder = "C:\Users\$env:USERNAME\Tools"
 # Load the shared setup-tools module
 Import-Module (Join-Path $scriptFolder -ChildPath "setup-tools.psm1")
 
+# Progress tracking function - writes status to shared folder for monitoring
+function Update-SetupProgress {
+    param(
+        [string]$Stage,
+        [int]$Progress,
+        [int]$Total = 12,
+        [string]$Details = ""
+    )
+
+    $statusFile = Join-Path $scriptFolder -ChildPath "setup-status.json"
+    $elapsed = 0
+    $startTimeFile = Join-Path $scriptFolder -ChildPath "setup-start-time.txt"
+
+    # Track start time
+    if ($Progress -eq 0) {
+        (Get-Date).ToString("o") | Out-File -FilePath $startTimeFile -Encoding UTF8
+    }
+
+    # Calculate elapsed time
+    if (Test-Path $startTimeFile) {
+        $startTime = [DateTime]::Parse((Get-Content $startTimeFile))
+        $elapsed = ([DateTime]::Now - $startTime).TotalSeconds
+    }
+
+    $status = @{
+        stage = $Stage
+        details = $Details
+        progress = $Progress
+        total = $Total
+        percent = [math]::Round(($Progress / $Total) * 100, 1)
+        timestamp = (Get-Date).ToString("o")
+        elapsed_seconds = [int]$elapsed
+        is_complete = $Progress -eq $Total
+    } | ConvertTo-Json -Compress
+
+    $status | Out-File -FilePath $statusFile -Encoding UTF8 -Force
+    Write-Host "[PROGRESS $Progress/$Total] $Stage"
+}
+
+# Initialize progress tracking
+Update-SetupProgress -Stage "Starting Windows setup" -Progress 0 -Total 12
+
 # Check if profile exists
 if (-not (Test-Path $PROFILE)) {
     New-Item -ItemType File -Path $PROFILE -Force
@@ -54,6 +96,8 @@ if (-not $downloadResult) {
     Invoke-Expression $setAliasExpression
 }
 
+Update-SetupProgress -Stage "Python installation complete" -Progress 1 -Details "Python 3.10 installed"
+
 ## - Git
 $gitToolName = "git"
 $gitToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $gitToolName
@@ -75,6 +119,8 @@ try {
         Write-Host "Git has been installed."
     }
 }
+
+Update-SetupProgress -Stage "Git installation complete" -Progress 2 -Details "Git version control system"
 
 # - 7zip
 $7ZipToolName = "7zip"
@@ -100,6 +146,8 @@ else {
         Add-ToEnvPath -NewPath "${env:ProgramFiles}\7-Zip"
     }
 }
+
+Update-SetupProgress -Stage "7-Zip installation complete" -Progress 3 -Details "File compression utility"
 
 # - ffpmeg
 $ffpmegToolName = "ffmpeg"
@@ -137,6 +185,8 @@ Stop-Process -Name "MicrosoftEdgeUpdate" -Force -ErrorAction SilentlyContinue
 $edgeUpdatePath = "${env:ProgramFiles(x86)}\Microsoft\EdgeUpdate"
 Remove-Item -Path $edgeUpdatePath -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Edge Update processes terminated and directory removed."
+
+Update-SetupProgress -Stage "ffmpeg installation complete" -Progress 4 -Details "Media processing tools"
 
 # - Google Chrome
 $chromeToolName = "Google Chrome"
@@ -178,6 +228,8 @@ if (Get-Command $chromeAlias -ErrorAction SilentlyContinue) {
     }
 }
 
+Update-SetupProgress -Stage "Google Chrome installation complete" -Progress 5 -Details "Web browser"
+
 # - LibreOffice
 $libreOfficeToolName = "LibreOffice"
 $libreOfficeToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $libreOfficeToolName
@@ -201,6 +253,8 @@ if (-not [string]::IsNullOrWhiteSpace($installedVersion)) {
         Add-ToEnvPath -NewPath "C:\Program Files\LibreOffice\program"
     }
 }
+
+Update-SetupProgress -Stage "LibreOffice installation complete" -Progress 6 -Details "Office productivity suite"
 
 # - VLC
 $vlcToolName = "VLC"
@@ -234,6 +288,8 @@ if (Test-Path $vlcExecutableFilePath) {
     }
 }
 
+Update-SetupProgress -Stage "VLC installation complete" -Progress 7 -Details "Media player"
+
 # - GIMP
 $gimpToolName = "GIMP"
 $gimpToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $gimpToolName
@@ -265,6 +321,8 @@ if (Test-Path $gimpExecutablePath) {
         Add-ToEnvPath -NewPath "C:\Program Files\GIMP 2\bin"
     }
 }
+
+Update-SetupProgress -Stage "GIMP installation complete" -Progress 8 -Details "Image editor"
 
 # - VS Code
 $vsCodeToolName = "VS Code"
@@ -317,6 +375,8 @@ if (Test-Path $vsCodeExecutablePath) {
     }
 }
 
+Update-SetupProgress -Stage "VS Code installation complete" -Progress 9 -Details "Code editor"
+
 # - Thunderbird
 $thunderbirdToolName = "Thunderbird"
 $thunderbirdToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $thunderbirdToolName
@@ -349,6 +409,8 @@ if (Test-Path $thunderbirdExecutablePath) {
     }
 }
 
+Update-SetupProgress -Stage "Thunderbird installation complete" -Progress 10 -Details "Email client"
+
 # - Server Setup 
 
 $pythonServerPort = 5000
@@ -379,6 +441,8 @@ if (-not (Get-NetFirewallRule -Name $pythonServerRuleName -ErrorAction SilentlyC
     Write-Host "Firewall rule already exists. $pythonServerRuleName "
 }
 
+Update-SetupProgress -Stage "Python server setup complete" -Progress 11 -Details "Flask server and dependencies"
+
 $onLogonScriptPath = "$scriptFolder\on-logon.ps1"
 # Check if the scheduled task exists before unregistering it
 if (Get-ScheduledTask -TaskName $onLogonTaskName -ErrorAction SilentlyContinue) {
@@ -391,3 +455,5 @@ Register-LogonTask -TaskName $onLogonTaskName -ScriptPath $onLogonScriptPath -Lo
 
 Write-Host "Starting task immediately for first-time setup..."
 Start-ScheduledTask -TaskName $onLogonTaskName
+
+Update-SetupProgress -Stage "Windows setup complete" -Progress 12 -Details "All applications installed and configured"

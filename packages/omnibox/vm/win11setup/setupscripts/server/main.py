@@ -3,6 +3,7 @@ import logging
 import argparse
 import shlex
 import subprocess
+import json
 from flask import Flask, request, jsonify, send_file
 import threading
 import traceback
@@ -70,6 +71,39 @@ computer_control_lock = threading.Lock()
 @app.route('/probe', methods=['GET'])
 def probe_endpoint():
     return jsonify({"status": "Probe successful", "message": "Service is operational"}), 200
+
+@app.route('/setup/status', methods=['GET'])
+def get_setup_status():
+    """Get Windows setup progress status"""
+    status_file = os.path.join("\\\\host.lan\\Data", "setup-status.json")
+
+    try:
+        if os.path.exists(status_file):
+            with open(status_file, 'r', encoding='utf-8') as f:
+                status = json.load(f)
+                return jsonify(status), 200
+        else:
+            # Setup hasn't started or status file doesn't exist yet
+            return jsonify({
+                "stage": "Not started",
+                "details": "Waiting for Windows setup to begin",
+                "progress": 0,
+                "total": 12,
+                "percent": 0.0,
+                "elapsed_seconds": 0,
+                "is_complete": False
+            }), 200
+    except Exception as e:
+        logger.error(f"Error reading setup status: {e}")
+        return jsonify({
+            "stage": "Unknown",
+            "details": str(e),
+            "progress": 0,
+            "total": 12,
+            "percent": 0.0,
+            "elapsed_seconds": 0,
+            "is_complete": False
+        }), 500
 
 @app.route('/execute', methods=['POST'])
 def execute_command():

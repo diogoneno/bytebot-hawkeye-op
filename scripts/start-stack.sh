@@ -344,6 +344,27 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
     docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --build
 fi
 
+# Show progress monitoring info for Windows desktop
+if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+    # Check if this is a fresh install (no volume) or existing install
+    if ! docker volume ls --format '{{.Name}}' | grep -q "^bytebot_omnibox_data$"; then
+        echo ""
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}   Windows Installation In Progress (20-90 minutes)${NC}"
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo -e "${CYAN}Monitor installation progress in real-time:${NC}"
+        echo -e "  ${BLUE}./scripts/monitor-omnibox.sh${NC}"
+        echo ""
+        echo -e "${CYAN}View detailed logs:${NC}"
+        echo -e "  ${BLUE}docker logs -f bytebot-omnibox${NC}"
+        echo ""
+        echo -e "${CYAN}Check health status:${NC}"
+        echo -e "  ${BLUE}./scripts/manage-omnibox.sh status${NC}"
+        echo ""
+    fi
+fi
+
 # Wait for services to be ready
 echo ""
 echo -e "${BLUE}Waiting for services to start...${NC}"
