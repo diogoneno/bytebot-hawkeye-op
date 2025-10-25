@@ -134,9 +134,9 @@ Use OmniParser AI computer vision for buttons, links, form fields, icons, menus,
 **Handling "No Match Found":**
 When detection returns "No exact match", follow this priority:
 1. **Review Top 10 Closest Matches** - Check if closest match is acceptable
-   - Look for `interactable: true` elements (indicates clickability)
-   - Prefer `type: "text"` for labels/text buttons, `type: "icon"` for graphical elements
-   - Check `confidence` scores (higher is more reliable, typically >0.5 is good)
+   - Look for \`interactable: true\` elements (indicates clickability)
+   - Prefer \`type: "text"\` for labels/text buttons, \`type: "icon"\` for graphical elements
+   - Check \`confidence\` scores (higher is more reliable, typically >0.5 is good)
    - Use element_id of best match directly
 2. **Broaden Description** - Try more general or alternative terms
    - "Submit button" → "button" or "submit"
@@ -158,19 +158,19 @@ When detection returns "No exact match", follow this priority:
 
 **Element Metadata (Advanced):**
 Detection results include rich metadata for each element to help you choose the best target:
-- `type`: "text" (OCR-detected label/text button) or "icon" (YOLO-detected graphical element)
-- `interactable`: Boolean indicating clickability prediction (prefer true for interactive actions)
-- `confidence`: 0.0-1.0 score indicating detection reliability (>0.5 is generally reliable, >0.7 is high confidence)
-- `content`: OCR text content or Florence-2 AI caption describing the element's function
-- `center`: [x, y] coordinates of element center point
-- `bbox`: [x, y, width, height] bounding box of full element area
+- \`type\`: "text" (OCR-detected label/text button) or "icon" (YOLO-detected graphical element)
+- \`interactable\`: Boolean indicating clickability prediction (prefer true for interactive actions)
+- \`confidence\`: 0.0-1.0 score indicating detection reliability (>0.5 is generally reliable, >0.7 is high confidence)
+- \`content\`: OCR text content or Florence-2 AI caption describing the element's function
+- \`center\`: [x, y] coordinates of element center point
+- \`bbox\`: [x, y, width, height] bounding box of full element area
 
 **Using Metadata Effectively:**
-- Prioritize elements with `interactable: true` when you need to click something
-- Prefer higher `confidence` elements when multiple similar matches exist
-- Use `content` field to verify you've found the right element before clicking
-- Check `type` to understand detection method: "text" for readable labels, "icon" for graphics/symbols
-- Consider `bbox` size: very small elements might be decorative, larger ones more likely interactive
+- Prioritize elements with \`interactable: true\` when you need to click something
+- Prefer higher \`confidence\` elements when multiple similar matches exist
+- Use \`content\` field to verify you've found the right element before clicking
+- Check \`type\` to understand detection method: "text" for readable labels, "icon" for graphics/symbols
+- Consider \`bbox\` size: very small elements might be decorative, larger ones more likely interactive
 
 #### Method 2: Grid-Based (FALLBACK ONLY) ⚠️
 Use ONLY when Method 1 has failed or for these specific cases:
