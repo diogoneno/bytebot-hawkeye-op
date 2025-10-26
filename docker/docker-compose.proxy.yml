@@ -148,6 +148,8 @@ services:
     environment:
       - NODE_ENV=production
       - BYTEBOT_AGENT_BASE_URL=${BYTEBOT_AGENT_BASE_URL:-http://bytebot-agent:9991}
+      - BYTEBOT_DESKTOP_LINUX_VNC_URL=${BYTEBOT_DESKTOP_LINUX_VNC_URL:-http://bytebot-desktop:9990/websockify}
+      - BYTEBOT_DESKTOP_WINDOWS_VNC_URL=${BYTEBOT_DESKTOP_WINDOWS_VNC_URL:-http://omnibox:8006/websockify}
       - BYTEBOT_DESKTOP_VNC_URL=${BYTEBOT_DESKTOP_VNC_URL}
       - NEXT_PUBLIC_PROGRESS_WS_PORT=${NEXT_PUBLIC_PROGRESS_WS_PORT:-8081}
     depends_on:

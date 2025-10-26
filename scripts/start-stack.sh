@@ -205,6 +205,16 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
             ./scripts/setup-lmstudio.sh
         fi
 
+        # Ollama Configuration (optional)
+        echo ""
+        echo -e "${BLUE}Ollama Configuration:${NC}"
+        echo "Configure local VLM models from Ollama?"
+        read -p "[y/N]: " setup_ollama
+
+        if [[ $setup_ollama =~ ^[Yy]$ ]]; then
+            ./scripts/setup-ollama.sh
+        fi
+
         cd docker
 
         echo ""
@@ -266,6 +276,16 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
 
         if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
             ./scripts/setup-lmstudio.sh
+        fi
+
+        # Ollama Configuration (optional)
+        echo ""
+        echo -e "${BLUE}Ollama Configuration:${NC}"
+        echo "Configure local VLM models from Ollama?"
+        read -p "[y/N]: " setup_ollama
+
+        if [[ $setup_ollama =~ ^[Yy]$ ]]; then
+            ./scripts/setup-ollama.sh
         fi
 
         cd docker
@@ -364,6 +384,16 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
 
     if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
         ./scripts/setup-lmstudio.sh
+    fi
+
+    # Ollama Configuration (optional)
+    echo ""
+    echo -e "${BLUE}Ollama Configuration:${NC}"
+    echo "Configure local VLM models from Ollama?"
+    read -p "[y/N]: " setup_ollama
+
+    if [[ $setup_ollama =~ ^[Yy]$ ]]; then
+        ./scripts/setup-ollama.sh
     fi
 
     cd docker

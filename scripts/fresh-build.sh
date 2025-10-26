@@ -296,6 +296,16 @@ if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
 fi
 echo ""
 
+# Ollama Configuration (optional)
+echo -e "${BLUE}Step 7.6: Ollama Model Discovery (optional)${NC}"
+echo "Ollama allows running local VLM models on your machine."
+read -p "Configure Ollama models? [y/N]: " setup_ollama
+
+if [[ $setup_ollama =~ ^[Yy]$ ]]; then
+    ./scripts/setup-ollama.sh
+fi
+echo ""
+
 # Start OmniParser for Apple Silicon (native with MPS GPU)
 if [[ "$ARCH" == "arm64" ]] && [[ "$PLATFORM" == "macOS" ]]; then
     echo -e "${BLUE}Step 8: Starting native OmniParser (Apple Silicon with MPS GPU)...${NC}"

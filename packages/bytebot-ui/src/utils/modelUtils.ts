@@ -9,6 +9,7 @@ export const PROVIDER_CATEGORIES = {
   GOOGLE: "Google",
   OPENROUTER: "OpenRouter",
   LMSTUDIO: "LM Studio (Local)",
+  OLLAMA: "Ollama (Local)",
   OTHER: "Other",
 } as const;
 
@@ -21,6 +22,7 @@ const PROVIDER_ORDER = [
   PROVIDER_CATEGORIES.GOOGLE,
   PROVIDER_CATEGORIES.OPENROUTER,
   PROVIDER_CATEGORIES.LMSTUDIO,
+  PROVIDER_CATEGORIES.OLLAMA,
   PROVIDER_CATEGORIES.OTHER,
 ];
 
@@ -66,6 +68,15 @@ export function categorizeModel(model: Model): string {
       (name.includes("qwen") || name.includes("gemma")))
   ) {
     return PROVIDER_CATEGORIES.LMSTUDIO;
+  }
+
+  // Check for Ollama local models
+  if (
+    title.includes("local-ollama") ||
+    name.includes("ollama_chat/") ||
+    name.includes("ollama/")
+  ) {
+    return PROVIDER_CATEGORIES.OLLAMA;
   }
 
   // Check for OpenRouter models
@@ -130,6 +141,8 @@ export function getProviderBadgeColor(category: string): string {
       return "bg-purple-500/10 text-purple-600 dark:text-purple-400";
     case PROVIDER_CATEGORIES.LMSTUDIO:
       return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400";
+    case PROVIDER_CATEGORIES.OLLAMA:
+      return "bg-teal-500/10 text-teal-600 dark:text-teal-400";
     default:
       return "bg-gray-500/10 text-gray-600 dark:text-gray-400";
   }

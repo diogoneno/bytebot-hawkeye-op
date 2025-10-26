@@ -5,12 +5,14 @@ import {
   isImageContentBlock,
   isComputerToolUseContentBlock,
   isToolResultContentBlock,
+  isThinkingContentBlock,
 } from "@bytebot/shared";
 import { MessageTimestampMeta } from "@/lib/datetime";
 import { TextContent } from "./TextContent";
 import { ImageContent } from "./ImageContent";
 import { ComputerToolContent } from "./ComputerToolContent";
 import { ErrorContent } from "./ErrorContent";
+import { ThinkingContent } from "./ThinkingContent";
 
 interface MessageContentProps {
   content: MessageContentBlock[];
@@ -67,6 +69,8 @@ export function MessageContent({
 
         return (
           <div key={index}>
+            {isThinkingContentBlock(block) && <ThinkingContent block={block} />}
+
             {isTextContentBlock(block) && <TextContent block={block} />}
 
             {isToolResultContentBlock(block) &&

@@ -56,6 +56,9 @@ export class ComputerUseService {
           params as ScreenshotCustomRegionAction,
         );
 
+      case 'screenshot_region':
+        return this.screenshotRegion(params as any);
+
       case 'wait':
         return this.wait(params.duration || 500);
 
@@ -326,6 +329,75 @@ print(img_base64)
     return {
       image: base64Image,
     };
+  }
+
+  /**
+   * Capture named region of screen
+   * Maps region names like "top-left", "center" to coordinates
+   */
+  async screenshotRegion(params: {
+    region: string;
+    showCursor?: boolean;
+  }): Promise<{ image: string }> {
+    const { region } = params;
+
+    this.logger.debug(`Capturing region: ${region}`);
+
+    // Get screen dimensions
+    const screenInfo = await this.getScreenInfo();
+    const { width: screenWidth, height: screenHeight } = screenInfo;
+
+    // Calculate region dimensions (half screen for quadrants, smaller for center)
+    const halfWidth = Math.floor(screenWidth / 2);
+    const halfHeight = Math.floor(screenHeight / 2);
+    const centerWidth = Math.floor(screenWidth / 2);
+    const centerHeight = Math.floor(screenHeight / 2);
+    const centerX = Math.floor((screenWidth - centerWidth) / 2);
+    const centerY = Math.floor((screenHeight - centerHeight) / 2);
+
+    // Map region names to coordinates
+    const regionMap: Record<
+      string,
+      { x: number; y: number; width: number; height: number }
+    > = {
+      'top-left': { x: 0, y: 0, width: halfWidth, height: halfHeight },
+      'top-right': {
+        x: halfWidth,
+        y: 0,
+        width: halfWidth,
+        height: halfHeight,
+      },
+      'bottom-left': {
+        x: 0,
+        y: halfHeight,
+        width: halfWidth,
+        height: halfHeight,
+      },
+      'bottom-right': {
+        x: halfWidth,
+        y: halfHeight,
+        width: halfWidth,
+        height: halfHeight,
+      },
+      center: { x: centerX, y: centerY, width: centerWidth, height: centerHeight },
+    };
+
+    const coords = regionMap[region];
+    if (!coords) {
+      throw new Error(
+        `Unknown region: ${region}. Valid regions: ${Object.keys(regionMap).join(', ')}`,
+      );
+    }
+
+    this.logger.debug(
+      `Region ${region} mapped to: x=${coords.x}, y=${coords.y}, width=${coords.width}, height=${coords.height}`,
+    );
+
+    // Delegate to custom region screenshot
+    return this.screenshotCustomRegion({
+      action: 'screenshot_custom_region',
+      ...coords,
+    });
   }
 
   /**

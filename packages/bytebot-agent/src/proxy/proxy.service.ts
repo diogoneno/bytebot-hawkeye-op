@@ -75,6 +75,30 @@ export class ProxyService implements BytebotAgentService {
         ...(isReasoningModel && { reasoning_effort: 'high' }),
       };
 
+      // Debug logging for requests with images
+      const hasImages = chatMessages.some(msg =>
+        Array.isArray((msg as any).content) &&
+        (msg as any).content.some((c: any) => c.type === 'image_url')
+      );
+      if (hasImages) {
+        this.logger.debug(
+          `Sending request with images. Model: ${model}, Message count: ${chatMessages.length}`
+        );
+        chatMessages.forEach((msg, idx) => {
+          if (Array.isArray((msg as any).content)) {
+            const imageContent = (msg as any).content.filter((c: any) => c.type === 'image_url');
+            if (imageContent.length > 0) {
+              const firstImageUrl = imageContent[0]?.image_url?.url || '';
+              this.logger.debug(
+                `Message ${idx}: role=${msg.role}, ` +
+                `content with ${imageContent.length} image_url items, ` +
+                `first URL prefix: ${firstImageUrl.substring(0, 50)}...`
+              );
+            }
+          }
+        });
+      }
+
       // Make the API call
       const completion = await this.openai.chat.completions.create(
         completionRequest,
@@ -84,11 +108,28 @@ export class ProxyService implements BytebotAgentService {
       // Process the response
       const choice = completion.choices[0];
       if (!choice || !choice.message) {
+        this.logger.error(
+          `No valid response from Chat Completion API for model ${model}. ` +
+          `Choices: ${JSON.stringify(completion.choices)}`,
+        );
         throw new Error('No valid response from Chat Completion API');
       }
 
+      this.logger.debug(
+        `Received response from ${model}: content="${choice.message.content}", ` +
+        `tool_calls=${choice.message.tool_calls?.length || 0}, ` +
+        `refusal=${!!choice.message.refusal}`,
+      );
+
       // Convert response to MessageContentBlocks
       const contentBlocks = this.formatChatCompletionResponse(choice.message);
+
+      if (contentBlocks.length === 0) {
+        this.logger.warn(
+          `Model ${model} returned 0 content blocks. Raw message:`,
+          JSON.stringify(choice.message, null, 2),
+        );
+      }
 
       return {
         contentBlocks,
@@ -110,6 +151,18 @@ export class ProxyService implements BytebotAgentService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Strip data URI prefix from base64 image data if present
+   * LiteLLM expects raw base64 without data:image/...;base64, prefix
+   */
+  private stripDataURIPrefix(base64Data: string): string {
+    if (base64Data.includes(',')) {
+      // Has data URI prefix like "data:image/png;base64,XXX"
+      return base64Data.split(',')[1];
+    }
+    return base64Data;
   }
 
   /**
@@ -150,13 +203,16 @@ export class ProxyService implements BytebotAgentService {
               )}`,
             });
           } else if (isImageContentBlock(block)) {
+            // OpenAI format with raw base64 (LiteLLM requirement)
+            const cleanBase64 = block.source.data.replace(/\s/g, '');
+            const rawBase64 = this.stripDataURIPrefix(cleanBase64);
             chatMessages.push({
               role: 'user',
               content: [
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:${block.source.media_type};base64,${block.source.data}`,
+                    url: rawBase64,
                     detail: 'high',
                   },
                 },
@@ -199,7 +255,9 @@ export class ProxyService implements BytebotAgentService {
 
           const assistantMsg: ChatCompletionMessageParam = {
             role: 'assistant',
-            content: textParts.length ? textParts.join('\n') : '',
+            // Use null instead of empty string when there's no text but there are tool calls
+            // Some models (like Ollama) don't handle empty content strings well
+            content: textParts.length ? textParts.join('\n') : (toolCalls.length > 0 ? null : ''),
           } as ChatCompletionMessageParam;
           if (toolCalls.length) (assistantMsg as any).tool_calls = toolCalls;
           if (reasoningContent) (assistantMsg as any).reasoning_content = reasoningContent;
@@ -213,13 +271,16 @@ export class ProxyService implements BytebotAgentService {
                 break;
               case MessageContentType.Image: {
                 const imageBlock = block as ImageContentBlock;
+                // OpenAI format with raw base64 (LiteLLM requirement)
+                const cleanBase64 = imageBlock.source.data.replace(/\s/g, '');
+                const rawBase64 = this.stripDataURIPrefix(cleanBase64);
                 chatMessages.push({
                   role: 'user',
                   content: [
                     {
                       type: 'image_url',
                       image_url: {
-                        url: `data:${imageBlock.source.media_type};base64,${imageBlock.source.data}`,
+                        url: rawBase64,
                         detail: 'high',
                       },
                     },
@@ -258,17 +319,22 @@ export class ProxyService implements BytebotAgentService {
                 }
                 // 2) After tool responses, provide the actual screenshot(s) as a user image message
                 if (pendingImages.length > 0) {
+                  // OpenAI format with raw base64 (LiteLLM requirement)
                   chatMessages.push({
                     role: 'user',
                     content: [
                       { type: 'text', text: 'Screenshot' },
-                      ...pendingImages.map((img) => ({
-                        type: 'image_url',
-                        image_url: {
-                          url: `data:${img.media_type};base64,${img.data}`,
-                          detail: 'high',
-                        },
-                      } as ChatCompletionContentPart)),
+                      ...pendingImages.map((img) => {
+                        const cleanBase64 = img.data.replace(/\s/g, '');
+                        const rawBase64 = this.stripDataURIPrefix(cleanBase64);
+                        return {
+                          type: 'image_url',
+                          image_url: {
+                            url: rawBase64,
+                            detail: 'high',
+                          },
+                        } as ChatCompletionContentPart;
+                      }),
                     ],
                   });
                 }
@@ -404,6 +470,39 @@ export class ProxyService implements BytebotAgentService {
     message: OpenAI.Chat.ChatCompletionMessage,
   ): MessageContentBlock[] {
     const contentBlocks: MessageContentBlock[] = [];
+
+    // WORKAROUND: Some Ollama models return tool calls as JSON text in content field
+    // instead of using proper tool_calls format. Detect and parse these.
+    if (
+      message.content &&
+      (!message.tool_calls || message.tool_calls.length === 0)
+    ) {
+      try {
+        const trimmed = message.content.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          const parsed = JSON.parse(trimmed);
+          // Check if it looks like a tool call (has name and arguments fields)
+          if (
+            parsed.name &&
+            typeof parsed.name === 'string' &&
+            parsed.arguments !== undefined
+          ) {
+            this.logger.debug(
+              `Detected Ollama-style tool call in content field: ${parsed.name}`,
+            );
+            contentBlocks.push({
+              type: MessageContentType.ToolUse,
+              id: `ollama_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: parsed.name,
+              input: parsed.arguments,
+            } as ToolUseContentBlock);
+            return contentBlocks; // Skip normal text handling
+          }
+        }
+      } catch (e) {
+        // Not JSON or not a tool call format, fall through to normal text handling
+      }
+    }
 
     // Handle text content
     if (message.content) {

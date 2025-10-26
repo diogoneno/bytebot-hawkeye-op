@@ -41,6 +41,16 @@
 
 **Latest Hawkeye enhancements (January 2025):**
 
+- **🖥️ Windows 11 Desktop Support** - Full OmniBox integration via dockurr/windows with live VNC view
+  - Automated setup with progress tracking and health monitoring
+  - PyAutoGUI-based computer control (screenshot, click, type, scroll)
+  - Region screenshot support for focused capture (top-left, center, etc.)
+  - Handles Windows session isolation (runs in user session, not Session 0)
+- **🎓 Trajectory Recording UI** - Visual controls for model learning system
+  - Live recording badge with pause/resume controls in header
+  - 2x2 stats grid showing recorded trajectories, success rate, quality metrics
+  - Provider breakdown showing trajectories by model (Claude, GPT-4o, Gemini)
+  - Clean empty states with "--" placeholders (no misleading 0% values)
 - **🧠 Model Learning System** - Enable non-Claude models to learn from Claude's successful completions
   - Trajectory distillation: Record and analyze complete task execution traces
   - Dynamic few-shot learning: Auto-inject relevant successful examples (35-50% improvement)
@@ -126,13 +136,21 @@ The setup script auto-detects your hardware and installs the optimal configurati
 
 ### Step 4: Start the Stack
 
+The start script will prompt you to choose a desktop platform:
+
 ```bash
 ./scripts/start-stack.sh
 ```
 
+**Platform options:**
+1. **Linux Desktop** (bytebotd) - Native Linux with X11/noVNC (default, fastest)
+2. **Windows 11 Desktop** (OmniBox) - Full Windows VM via dockurr/windows
+
 **Access the application:**
 - 🌐 **Web UI:** http://localhost:9992
-- 🖥️ **Desktop (noVNC):** http://localhost:9990
+- 🖥️ **Desktop (noVNC):**
+  - Linux: http://localhost:9990
+  - Windows: http://localhost:8006 (also proxied in UI)
 - 🤖 **Agent API:** http://localhost:9991
 - 🔀 **LiteLLM Proxy:** http://localhost:4000
 - 👁️ **OmniParser:** http://localhost:9989
@@ -188,6 +206,8 @@ Hawkeye layers precision tooling on top of upstream Bytebot for reliable autonom
 
 | Capability | Hawkeye | Upstream Bytebot |
 | --- | --- | --- |
+| **Windows 11 desktop** | Full OmniBox integration with automated setup, progress tracking, PyAutoGUI control, region screenshots | Linux-only bytebotd |
+| **Trajectory recording UI** | Visual badge with pause/resume, 2x2 stats grid, provider breakdown, clean empty states | Command-line only |
 | **Grid overlay guidance** | Always-on coordinate grids with labeled axes, optional debug overlays (`BYTEBOT_GRID_OVERLAY`/`BYTEBOT_GRID_DEBUG`) | No persistent spatial scaffolding |
 | **Smart Focus targeting** | Three-stage coarse→focus→click workflow with tunable grids ([Smart Focus System](docs/SMART_FOCUS_SYSTEM.md)) | Single-shot click reasoning |
 | **Progressive zoom capture** | Deterministic zoom ladder with cyan micro-grids and coordinate reconciliation | Manual zoom without coordinate mapping |
@@ -382,6 +402,37 @@ docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 # Check OmniParser logs
 docker logs bytebot-omniparser | grep "device:"
 ```
+
+### Windows Desktop Issues
+
+**Desktop view not showing (black screen or "no connection"):**
+```bash
+# Check OmniBox container is running
+docker compose ps bytebot-omnibox
+
+# Verify Flask server is accessible
+docker exec bytebot-omnibox curl -f http://172.30.0.4:5000/probe
+
+# Check Windows setup progress
+docker exec bytebot-omnibox cat /run/setup_progress.json
+```
+
+**Screenshots failing with "screen grab failed":**
+- **Root Cause:** Flask server running in Session 0 (SYSTEM) instead of user session
+- **Fix:** The scheduled task must use user logon trigger (not system startup)
+- **Verify:** Check `setup.ps1` line 453-454 uses `-LocalUser "Docker"` (not `-AtStartup -AsSystem`)
+- **Rebuild:** If misconfigured, delete volume and rebuild: `./scripts/fresh-build.sh` → choose Windows → select "Delete volume and reinstall"
+
+**Region screenshot not working:**
+- **Symptom:** "Unsupported action: screenshot_region" error
+- **Fix:** Update omnibox-adapter to latest version with `screenshotRegion()` method
+- **Verify:** Check omnibox-adapter logs for "Region mapped to coordinates" messages
+
+**VNC connection errors in UI:**
+- **Symptom:** "Invalid URL" errors or websocket connection failures
+- **Cause:** `BYTEBOT_DESKTOP_VNC_URL` environment variable not set
+- **Fix:** Ensure scripts load `.env.defaults` with `set -a && source docker/.env.defaults && set +a`
+- **Default:** Should be `http://omnibox:8006/websockify` for Windows
 
 See [GPU Setup Guide](docs/GPU_SETUP.md) for detailed troubleshooting.
 

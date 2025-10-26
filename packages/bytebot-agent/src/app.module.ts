@@ -14,6 +14,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SummariesModule } from './summaries/summaries.modue';
 import { ProxyModule } from './proxy/proxy.module';
 import { SettingsModule } from './settings/settings.module';
+import { TrajectoryModule } from './trajectory/trajectory.module';
 import { EnhancedCVModule } from '@bytebot/cv';
 import { CVActivityController } from './computer-vision/cv-activity.controller';
 
@@ -33,6 +34,7 @@ import { CVActivityController } from './computer-vision/cv-activity.controller';
     GoogleModule,
     ProxyModule,
     SettingsModule,
+    TrajectoryModule,
     PrismaModule,
     EnhancedCVModule,
   ],

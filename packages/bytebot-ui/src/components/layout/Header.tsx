@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApiKeySettingsDialog } from "@/components/settings/ApiKeySettingsDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import { TrajectoryRecordingBadge } from "@/components/learning/TrajectoryRecordingBadge";
 
 export function Header() {
   const { resolvedTheme } = useTheme();
@@ -97,6 +98,7 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <TrajectoryRecordingBadge />
         <ThemeToggle />
         <Button
           type="button"

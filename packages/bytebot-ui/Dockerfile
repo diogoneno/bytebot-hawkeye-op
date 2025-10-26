@@ -24,6 +24,9 @@ RUN npm install
 
 RUN npm run build
 
+# Set production environment
+ENV NODE_ENV=production
+
 # Run the application
 CMD ["npm", "run", "start"] 
 

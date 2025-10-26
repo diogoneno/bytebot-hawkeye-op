@@ -1,0 +1,24 @@
+# Ollama Vision Model Manual Overrides
+#
+# This file allows you to manually specify vision/multimodal models that aren't
+# auto-detected by the setup-ollama.sh script.
+#
+# Usage:
+#   1. Add model name patterns (one per line)
+#   2. Patterns are case-insensitive regex
+#   3. Lines starting with # are comments
+#   4. Empty lines are ignored
+#
+# Auto-detected families (already included):
+#   - llava, qwen-vl, minicpm-v, bakllava
+#   - glm-4, llama3.2, internlm-vl, cogvlm
+#   - yi-vl, deepseek-vl, vision, vl, visual
+#
+# Examples (uncomment if needed):
+# gpt-4.*vision      # GPT-4 Vision variants
+# claude.*vision     # Claude vision models
+# phi-3.*vision      # Phi-3 Vision
+# gemini.*pro        # Gemini Pro with vision
+# pixtral           # Pixtral vision model
+#
+# Your custom patterns below:

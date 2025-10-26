@@ -201,7 +201,7 @@ export function TrajectoryRecordingIndicator({ className }: { className?: string
               getQualityColor(stats.averageQuality)
             )}
           >
-            {getQualityLabel(stats.averageQuality)} ({Math.round(stats.averageQuality * 100)}%)
+            {getQualityLabel(stats.averageQuality)}
           </div>
         </div>
       </div>
@@ -225,15 +225,6 @@ export function TrajectoryRecordingIndicator({ className }: { className?: string
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* System Note */}
-      {status.enabled && !status.paused && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Recording Claude runs to improve other models via few-shot learning
-          </p>
         </div>
       )}
     </div>

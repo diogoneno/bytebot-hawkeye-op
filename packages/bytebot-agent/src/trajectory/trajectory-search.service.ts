@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import OpenAI from 'openai';
 import {
   TrajectorySearchParams,
@@ -157,6 +158,37 @@ export class TrajectorySearchService {
         params.minSimilarity || this.config.similarityThreshold || 0.7;
       const successOnly = params.successOnly !== false; // Default to true
 
+      // Build conditional WHERE clauses using Prisma.sql for proper SQL fragment composition
+      const whereFragments: Prisma.Sql[] = [
+        Prisma.sql`t.success = ${successOnly}`,
+      ];
+
+      if (params.modelProvider) {
+        whereFragments.push(
+          Prisma.sql`t."modelProvider" = ${params.modelProvider}`,
+        );
+      }
+
+      if (params.minQuality) {
+        whereFragments.push(
+          Prisma.sql`t."qualityScore" >= ${params.minQuality}`,
+        );
+      }
+
+      if (
+        this.config.sourceProviders &&
+        this.config.sourceProviders.length > 0
+      ) {
+        whereFragments.push(
+          Prisma.sql`t."modelProvider" = ANY(${this.config.sourceProviders})`,
+        );
+      }
+
+      const whereClause = Prisma.join(whereFragments, ' AND ');
+
+      // Cast topK to number to ensure PostgreSQL receives correct type for LIMIT
+      const limitValue = Number(topK);
+
       // Use raw SQL for vector similarity search
       const results: any[] = await this.prisma.$queryRaw`
         SELECT
@@ -172,12 +204,9 @@ export class TrajectorySearchService {
           1 - (e.embedding <=> ${queryEmbedding}::vector) as similarity
         FROM "TaskTrajectory" t
         JOIN "TrajectoryEmbedding" e ON e."trajectoryId" = t.id
-        WHERE t.success = ${successOnly}
-          ${params.modelProvider ? this.prisma.$queryRaw`AND t."modelProvider" = ${params.modelProvider}` : this.prisma.$queryRaw``}
-          ${params.minQuality ? this.prisma.$queryRaw`AND t."qualityScore" >= ${params.minQuality}` : this.prisma.$queryRaw``}
-          ${this.config.sourceProviders.length > 0 ? this.prisma.$queryRaw`AND t."modelProvider" = ANY(${this.config.sourceProviders})` : this.prisma.$queryRaw``}
+        WHERE ${whereClause}
         ORDER BY e.embedding <=> ${queryEmbedding}::vector
-        LIMIT ${topK}
+        LIMIT ${Prisma.raw(String(limitValue))}
       `;
 
       // Filter by similarity threshold and load full data
