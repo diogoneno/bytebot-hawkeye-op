@@ -450,8 +450,8 @@ if (Get-ScheduledTask -TaskName $onLogonTaskName -ErrorAction SilentlyContinue) 
     Unregister-ScheduledTask -TaskName $onLogonTaskName -Confirm:$false
 }
 
-Write-Host "Registering new logon task $onLogonTaskName (runs at user logon)..."
-Register-LogonTask -TaskName $onLogonTaskName -ScriptPath $onLogonScriptPath -LocalUser "Docker"
+Write-Host "Registering new startup task $onLogonTaskName (runs at Windows boot)..."
+Register-LogonTask -TaskName $onLogonTaskName -ScriptPath $onLogonScriptPath -AtStartup -AsSystem
 
 Write-Host "Starting task immediately for first-time setup..."
 Start-ScheduledTask -TaskName $onLogonTaskName

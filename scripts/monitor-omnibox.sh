@@ -61,7 +61,7 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${BLUE}   OmniBox Windows Setup Monitor${NC}"
 echo -e "${BLUE}════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${CYAN}Monitoring: http://localhost:5000/setup/status${NC}"
+echo -e "${CYAN}Monitoring: http://localhost:5001/computer-use/setup/status${NC}"
 echo -e "${CYAN}Press Ctrl+C to exit${NC}"
 echo ""
 
@@ -79,7 +79,7 @@ last_percent=0
 
 while true; do
     # Fetch status
-    response=$(curl -s http://localhost:5000/setup/status 2>/dev/null)
+    response=$(curl -s http://localhost:5001/computer-use/setup/status 2>/dev/null)
 
     if [ $? -ne 0 ] || [ -z "$response" ]; then
         echo -ne "\r${RED}✗ API not responding - waiting for Windows VM to start...${NC}\033[K"

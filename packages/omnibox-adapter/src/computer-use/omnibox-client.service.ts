@@ -138,6 +138,42 @@ print(json.dumps({"x": pos.x, "y": pos.y}))
   }
 
   /**
+   * Get Windows setup progress status
+   */
+  async getSetupStatus(): Promise<any> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`${this.baseUrl}/setup/status`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(
+          `OmniBox setup status failed: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      this.logger.debug(`Setup status check failed: ${error.message}`);
+      // Return default status if endpoint not available
+      return {
+        stage: 'Unknown',
+        details: 'Status endpoint not available',
+        progress: 0,
+        total: 12,
+        percent: 0.0,
+        elapsed_seconds: 0,
+        is_complete: false,
+      };
+    }
+  }
+
+  /**
    * Helper: Build PyAutoGUI command
    */
   buildPyAutoGUICommand(action: string, args: Record<string, any> = {}): string {

@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ComputerUseService } from './computer-use.service';
+import { OmniBoxClient } from './omnibox-client.service';
 import { ComputerAction } from '@bytebot/shared';
 
 /**
@@ -19,11 +20,30 @@ import { ComputerAction } from '@bytebot/shared';
 export class ComputerUseController {
   private readonly logger = new Logger(ComputerUseController.name);
 
-  constructor(private readonly computerUseService: ComputerUseService) {}
+  constructor(
+    private readonly computerUseService: ComputerUseService,
+    private readonly omniboxClient: OmniBoxClient,
+  ) {}
 
   @Get()
   async health() {
     return { status: 'ok', service: 'omnibox-adapter' };
+  }
+
+  @Get('setup/status')
+  async setupStatus() {
+    try {
+      return await this.omniboxClient.getSetupStatus();
+    } catch (error) {
+      this.logger.error(
+        `Error getting setup status: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to get setup status: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Post()

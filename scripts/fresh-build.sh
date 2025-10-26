@@ -354,38 +354,81 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$PLATFORM" == "macOS" ]]; then
 
     echo ""
     echo -e "${BLUE}Starting services...${NC}"
-    docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --no-deps \
-        $([ "$DESKTOP_PLATFORM" = "windows" ] && echo "omnibox omnibox-adapter" || echo "bytebot-desktop") \
-        bytebot-agent \
-        bytebot-ui \
-        postgres \
-        $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+
+    # For Windows: start in background and monitor
+    if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --no-deps \
+            omnibox omnibox-adapter \
+            bytebot-agent \
+            bytebot-ui \
+            postgres \
+            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "") &
+        COMPOSE_PID=$!
+
+        cd ..
+
+        echo ""
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}   Windows Desktop Starting Up${NC}"
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo -e "${CYAN}Starting real-time progress monitor...${NC}"
+        echo ""
+
+        # Monitor in foreground
+        ./scripts/monitor-omnibox.sh || true
+
+        # Wait for docker compose to finish if still running
+        wait $COMPOSE_PID 2>/dev/null || true
+
+        echo ""
+        echo -e "${CYAN}To resume monitoring at any time:${NC}"
+        echo -e "  ${BLUE}./scripts/monitor-omnibox.sh${NC}"
+        echo ""
+    else
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --no-deps \
+            bytebot-desktop \
+            bytebot-agent \
+            bytebot-ui \
+            postgres \
+            $([ "$COMPOSE_FILE" = "docker-compose.proxy.yml" ] && echo "bytebot-llm-proxy" || echo "")
+        cd ..
+    fi
 else
     # Linux and Windows (WSL) - build everything including OmniParser
     echo -e "${BLUE}Building all services including OmniParser...${NC}"
-    docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --build
-fi
 
-cd ..
+    # For Windows: start docker compose in background, then monitor progress
+    if [ "$DESKTOP_PLATFORM" = "windows" ]; then
+        # Start docker compose in background (will wait for health checks)
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --build &
+        COMPOSE_PID=$!
 
-# Show progress monitoring info for Windows desktop
-if [ "$DESKTOP_PLATFORM" = "windows" ]; then
-    echo ""
-    echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}   Windows Desktop Starting Up${NC}"
-    echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
-    echo ""
-    echo -e "${CYAN}Monitor installation progress in real-time:${NC}"
-    echo -e "  ${BLUE}./scripts/monitor-omnibox.sh${NC}"
-    echo ""
-    echo -e "${CYAN}View detailed logs:${NC}"
-    echo -e "  ${BLUE}docker logs -f bytebot-omnibox${NC}"
-    echo ""
-    echo -e "${CYAN}Check health status:${NC}"
-    echo -e "  ${BLUE}./scripts/manage-omnibox.sh status${NC}"
-    echo ""
-    echo -e "${CYAN}First boot: 20-90 minutes | Subsequent boots: ~30 seconds${NC}"
-    echo ""
+        cd ..
+
+        echo ""
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}   Windows Desktop Starting Up${NC}"
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo -e "${CYAN}Starting real-time progress monitor...${NC}"
+        echo ""
+
+        # Monitor in foreground while docker compose waits for health checks
+        ./scripts/monitor-omnibox.sh || true
+
+        # Wait for docker compose to finish if still running
+        wait $COMPOSE_PID 2>/dev/null || true
+
+        echo ""
+        echo -e "${CYAN}To resume monitoring at any time:${NC}"
+        echo -e "  ${BLUE}./scripts/monitor-omnibox.sh${NC}"
+        echo ""
+    else
+        # Linux: run docker compose normally (foreground)
+        docker compose $PROFILE_ARG -f $COMPOSE_FILE -f docker-compose.override.yml up -d --build
+        cd ..
+    fi
 fi
 
 # Wait for services
