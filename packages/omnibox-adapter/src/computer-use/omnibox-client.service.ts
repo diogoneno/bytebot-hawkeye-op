@@ -131,10 +131,60 @@ pos = pyautogui.position()
 print(json.dumps({"x": pos.x, "y": pos.y}))
 `;
 
-    // Note: OmniBox /execute doesn't return output
-    // This would need custom endpoint or workaround
-    // For now, we'll throw as not implemented
-    throw new Error('getCursorPosition not yet implemented via OmniBox');
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeout = parseInt(process.env.OMNIBOX_TIMEOUT || '30000', 10);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const baseUrl = process.env.OMNIBOX_URL || 'http://omnibox:5000';
+      const response = await fetch(`${baseUrl}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: ['python', '-c', pythonCode],
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `OmniBox execute failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const result = await response.json();
+      const elapsed = Date.now() - startTime;
+
+      this.logger.debug(`Got cursor position in ${elapsed}ms`);
+
+      // Check for errors
+      if (result.status === 'error') {
+        throw new Error(`Python execution error: ${result.message}`);
+      }
+
+      if (result.returncode !== 0) {
+        throw new Error(
+          `Python command failed with code ${result.returncode}: ${result.error}`,
+        );
+      }
+
+      // Parse JSON from output
+      const position = JSON.parse(result.output.trim());
+      return { x: position.x, y: position.y };
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      this.logger.error(
+        `OmniBox getCursorPosition error after ${elapsed}ms: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -165,7 +215,7 @@ print(json.dumps({"x": pos.x, "y": pos.y}))
         stage: 'Unknown',
         details: 'Status endpoint not available',
         progress: 0,
-        total: 12,
+        total: 9,
         percent: 0.0,
         elapsed_seconds: 0,
         is_complete: false,

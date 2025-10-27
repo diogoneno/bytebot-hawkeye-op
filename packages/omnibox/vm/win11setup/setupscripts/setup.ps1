@@ -12,7 +12,7 @@ function Update-SetupProgress {
     param(
         [string]$Stage,
         [int]$Progress,
-        [int]$Total = 12,
+        [int]$Total = 9,
         [string]$Details = ""
     )
 
@@ -47,7 +47,7 @@ function Update-SetupProgress {
 }
 
 # Initialize progress tracking
-Update-SetupProgress -Stage "Starting Windows setup" -Progress 0 -Total 12
+Update-SetupProgress -Stage "Starting Windows setup" -Progress 0 -Total 9
 
 # Check if profile exists
 if (-not (Test-Path $PROFILE)) {
@@ -230,100 +230,6 @@ if (Get-Command $chromeAlias -ErrorAction SilentlyContinue) {
 
 Update-SetupProgress -Stage "Google Chrome installation complete" -Progress 5 -Details "Web browser"
 
-# - LibreOffice
-$libreOfficeToolName = "LibreOffice"
-$libreOfficeToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $libreOfficeToolName
-
-# Check for LibreOffice installation
-$installedVersion = (Get-WmiObject -Query "SELECT * FROM Win32_Product WHERE Name like 'LibreOffice%'").Version
-if (-not [string]::IsNullOrWhiteSpace($installedVersion)) {
-    Write-Host "LibreOffice $version is already installed."
-} else {
-    Write-Host "LibreOffice is not installed. Downloading and installing LibreOffice..."
-    $libreOfficeInstallerFilePath = "$env:TEMP\libreOffice_installer.exe"
-    
-    $downloadResult = Invoke-DownloadFileFromAvailableMirrors -mirrorUrls $libreOfficeToolDetails.mirrors -outfile $libreOfficeInstallerFilePath
-    if (-not $downloadResult) {
-        Write-Host "Failed to download LibreOffice. Please try again later or install manually."
-    } else {
-        Start-Process "msiexec.exe" -ArgumentList "/i `"$libreOfficeInstallerFilePath`" /quiet" -Wait -NoNewWindow
-        Write-Host "LibreOffice has been installed."
-    
-        # Add LibreOffice to the system PATH environment variable
-        Add-ToEnvPath -NewPath "C:\Program Files\LibreOffice\program"
-    }
-}
-
-Update-SetupProgress -Stage "LibreOffice installation complete" -Progress 6 -Details "Office productivity suite"
-
-# - VLC
-$vlcToolName = "VLC"
-$vlcToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $vlcToolName
-$vlcAlias = $vlcToolDetails.alias
-$vlcExecutableFilePath = "C:\Program Files\VideoLAN\VLC\vlc.exe"
-
-# Check if VLC is already installed by checking the VLC command
-if (Test-Path $vlcExecutableFilePath) {
-    Write-Host "VLC is already installed."
-} else {
-    # Download the installer to the Temp directory
-    $vlcInstallerFilePath = "$env:TEMP\vlc_installer.exe"
-    $downloadResult = Invoke-DownloadFileFromAvailableMirrors -mirrorUrls $vlcToolDetails.mirrors -outfile $vlcInstallerFilePath
-    if (-not $downloadResult) {
-        Write-Host "Failed to download VLC. Please try again later or install manually."
-    } else {
-        # Execute the installer silently with elevated permissions
-        Start-Process -FilePath $vlcInstallerFilePath -ArgumentList "/S" -Verb RunAs -Wait
-
-        # Remove the installer file after installation
-        Remove-Item -Path $vlcInstallerFilePath
-
-        # Set alias
-        $setAliasExpression = "Set-Alias -Name $vlcAlias -Value `"$vlcExecutableFilePath`""
-        Add-Content -Path $PROFILE -Value $setAliasExpression
-        Invoke-Expression $setAliasExpression
-
-        # Add VLC to the system PATH environment variable
-        Add-ToEnvPath -NewPath "C:\Program Files\VideoLAN\VLC"
-    }
-}
-
-Update-SetupProgress -Stage "VLC installation complete" -Progress 7 -Details "Media player"
-
-# - GIMP
-$gimpToolName = "GIMP"
-$gimpToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $gimpToolName
-$gimpAlias = $gimpToolDetails.alias
-$gimpExecutablePath = "C:\Program Files\GIMP 2\bin\gimp-2.10.exe"
-
-# Check if GIMP is already installed by checking the GIMP executable path
-if (Test-Path $gimpExecutablePath) {
-    Write-Host "GIMP is already installed."
-} else {
-    # Download the installer to the Temp directory
-    $gimpInstallerFilePath = "$env:TEMP\gimp_installer.exe"
-    $downloadResult = Invoke-DownloadFileFromAvailableMirrors -mirrorUrls $gimpToolDetails.mirrors -outfile $gimpInstallerFilePath
-    if (-not $downloadResult) {
-        Write-Host "Failed to download GIMP. Please try again later or install manually."
-    } else {
-        # Execute the installer silently with elevated permissions
-        Start-Process -FilePath $gimpInstallerFilePath -ArgumentList "/VERYSILENT /ALLUSERS" -Verb RunAs -Wait
-
-        # Remove the installer file after installation
-        Remove-Item -Path $gimpInstallerFilePath
-
-        # Set alias
-        $setAliasExpression = "Set-Alias -Name $gimpAlias -Value `"$gimpExecutablePath`""
-        Add-Content -Path $PROFILE -Value $setAliasExpression
-        Invoke-Expression $setAliasExpression
-
-        # Add GIMP to the system PATH environment variable
-        Add-ToEnvPath -NewPath "C:\Program Files\GIMP 2\bin"
-    }
-}
-
-Update-SetupProgress -Stage "GIMP installation complete" -Progress 8 -Details "Image editor"
-
 # - VS Code
 $vsCodeToolName = "VS Code"
 $vsCodeToolDetails = Get-ToolDetails -toolsList $toolsList -toolName $vsCodeToolName
@@ -375,7 +281,7 @@ if (Test-Path $vsCodeExecutablePath) {
     }
 }
 
-Update-SetupProgress -Stage "VS Code installation complete" -Progress 9 -Details "Code editor"
+Update-SetupProgress -Stage "VS Code installation complete" -Progress 6 -Details "Code editor"
 
 # - Thunderbird
 $thunderbirdToolName = "Thunderbird"
@@ -409,7 +315,7 @@ if (Test-Path $thunderbirdExecutablePath) {
     }
 }
 
-Update-SetupProgress -Stage "Thunderbird installation complete" -Progress 10 -Details "Email client"
+Update-SetupProgress -Stage "Thunderbird installation complete" -Progress 7 -Details "Email client"
 
 # - Server Setup 
 
@@ -441,7 +347,7 @@ if (-not (Get-NetFirewallRule -Name $pythonServerRuleName -ErrorAction SilentlyC
     Write-Host "Firewall rule already exists. $pythonServerRuleName "
 }
 
-Update-SetupProgress -Stage "Python server setup complete" -Progress 11 -Details "Flask server and dependencies"
+Update-SetupProgress -Stage "Python server setup complete" -Progress 8 -Details "Flask server and dependencies"
 
 $onLogonScriptPath = "$scriptFolder\on-logon.ps1"
 # Check if the scheduled task exists before unregistering it
@@ -456,4 +362,4 @@ Register-LogonTask -TaskName $onLogonTaskName -ScriptPath $onLogonScriptPath -Lo
 Write-Host "Starting task immediately for first-time setup..."
 Start-ScheduledTask -TaskName $onLogonTaskName
 
-Update-SetupProgress -Stage "Windows setup complete" -Progress 12 -Details "All applications installed and configured"
+Update-SetupProgress -Stage "Windows setup complete" -Progress 9 -Details "All applications installed and configured"

@@ -4,11 +4,18 @@ import {
   ComputerAction,
   ClickMouseAction,
   MoveMouseAction,
+  TraceMouseAction,
+  PressMouseAction,
+  DragMouseAction,
   TypeTextAction,
+  TypeKeysAction,
+  PasteTextAction,
   PressKeysAction,
   ScrollAction,
   ApplicationAction,
   ScreenshotCustomRegionAction,
+  ReadFileAction,
+  WriteFileAction,
 } from '@bytebot/shared';
 
 /**
@@ -39,11 +46,26 @@ export class ComputerUseService {
       case 'move_mouse':
         return this.moveMouse(params as MoveMouseAction);
 
+      case 'trace_mouse':
+        return this.traceMouse(params as TraceMouseAction);
+
+      case 'press_mouse':
+        return this.pressMouse(params as PressMouseAction);
+
+      case 'drag_mouse':
+        return this.dragMouse(params as DragMouseAction);
+
       case 'type_text':
         return this.typeText(params as TypeTextAction);
 
       case 'press_keys':
         return this.pressKeys(params as PressKeysAction);
+
+      case 'type_keys':
+        return this.typeKeys(params as TypeKeysAction);
+
+      case 'paste_text':
+        return this.pasteText(params as PasteTextAction);
 
       case 'scroll':
         return this.scroll(params as ScrollAction);
@@ -64,6 +86,15 @@ export class ComputerUseService {
 
       case 'screen_info':
         return this.getScreenInfo();
+
+      case 'cursor_position':
+        return this.getCursorPosition();
+
+      case 'read_file':
+        return this.readFile(params as ReadFileAction);
+
+      case 'write_file':
+        return this.writeFile(params as WriteFileAction);
 
       default:
         throw new Error(`Unsupported action: ${params.action}`);
@@ -154,6 +185,154 @@ export class ComputerUseService {
   }
 
   /**
+   * Trace mouse along a path of coordinates
+   */
+  async traceMouse(params: TraceMouseAction): Promise<void> {
+    const { path, holdKeys } = params;
+
+    if (!path || path.length === 0) {
+      throw new Error('Path required');
+    }
+
+    // Build Python code to trace the path
+    const pathStr = path.map((coord) => `(${coord.x}, ${coord.y})`).join(', ');
+
+    let pythonCode = `
+import pyautogui
+import time
+pyautogui.FAILSAFE = False
+`;
+
+    // Hold keys if provided
+    if (holdKeys && holdKeys.length > 0) {
+      const mappedKeys = holdKeys.map((key) => this.mapKeyToPyAutoGUI(key));
+      mappedKeys.forEach((key) => {
+        pythonCode += `pyautogui.keyDown('${key}')\n`;
+      });
+    }
+
+    // Move to first point
+    pythonCode += `pyautogui.moveTo(${path[0].x}, ${path[0].y}, duration=0)\n`;
+
+    // Trace the path
+    path.slice(1).forEach((coord) => {
+      pythonCode += `pyautogui.moveTo(${coord.x}, ${coord.y}, duration=0.1)\n`;
+    });
+
+    // Release hold keys
+    if (holdKeys && holdKeys.length > 0) {
+      const mappedKeys = holdKeys.map((key) => this.mapKeyToPyAutoGUI(key));
+      mappedKeys.forEach((key) => {
+        pythonCode += `pyautogui.keyUp('${key}')\n`;
+      });
+    }
+
+    await this.omniboxClient.execute(pythonCode);
+
+    this.logger.debug(`Traced mouse path with ${path.length} points`);
+  }
+
+  /**
+   * Press or release mouse button
+   */
+  async pressMouse(params: PressMouseAction): Promise<void> {
+    const { coordinates, button, press } = params;
+
+    // Map button names
+    const buttonMap: Record<string, string> = {
+      left: 'left',
+      right: 'right',
+      middle: 'middle',
+    };
+
+    const pyButton = buttonMap[button] || 'left';
+
+    let pythonCode = `
+import pyautogui
+pyautogui.FAILSAFE = False
+`;
+
+    // Move to coordinates if provided
+    if (coordinates) {
+      pythonCode += `pyautogui.moveTo(${coordinates.x}, ${coordinates.y}, duration=0)\n`;
+    }
+
+    // Press or release button
+    if (press === 'down') {
+      pythonCode += `pyautogui.mouseDown(button='${pyButton}')\n`;
+    } else {
+      pythonCode += `pyautogui.mouseUp(button='${pyButton}')\n`;
+    }
+
+    await this.omniboxClient.execute(pythonCode);
+
+    this.logger.debug(`Mouse button ${button} ${press}`);
+  }
+
+  /**
+   * Drag mouse along a path with button held
+   */
+  async dragMouse(params: DragMouseAction): Promise<void> {
+    const { path, button, holdKeys } = params;
+
+    if (!path || path.length === 0) {
+      throw new Error('Path required');
+    }
+
+    // Map button names
+    const buttonMap: Record<string, string> = {
+      left: 'left',
+      right: 'right',
+      middle: 'middle',
+    };
+
+    const pyButton = buttonMap[button] || 'left';
+
+    let pythonCode = `
+import pyautogui
+import time
+pyautogui.FAILSAFE = False
+`;
+
+    // Move to first point
+    pythonCode += `pyautogui.moveTo(${path[0].x}, ${path[0].y}, duration=0)\n`;
+
+    // Hold keys if provided
+    if (holdKeys && holdKeys.length > 0) {
+      const mappedKeys = holdKeys.map((key) => this.mapKeyToPyAutoGUI(key));
+      mappedKeys.forEach((key) => {
+        pythonCode += `pyautogui.keyDown('${key}')\n`;
+      });
+    }
+
+    // Hold mouse button down
+    pythonCode += `pyautogui.mouseDown(button='${pyButton}')\n`;
+    pythonCode += `time.sleep(0.1)\n`;
+
+    // Drag along the path
+    path.slice(1).forEach((coord) => {
+      pythonCode += `pyautogui.moveTo(${coord.x}, ${coord.y}, duration=0.1)\n`;
+    });
+
+    // Release mouse button
+    pythonCode += `pyautogui.mouseUp(button='${pyButton}')\n`;
+
+    // Release hold keys
+    if (holdKeys && holdKeys.length > 0) {
+      const mappedKeys = holdKeys.map((key) => this.mapKeyToPyAutoGUI(key));
+      mappedKeys.forEach((key) => {
+        pythonCode += `pyautogui.keyUp('${key}')\n`;
+      });
+    }
+
+    await this.omniboxClient.execute(pythonCode);
+
+    this.logger.debug(
+      `Dragged mouse along path with ${path.length} points using ${button} button`,
+    );
+  }
+
+  /**
    * Type text
    */
   async typeText(params: TypeTextAction): Promise<void> {
@@ -204,6 +383,74 @@ export class ComputerUseService {
     }
 
     this.logger.debug(`Pressed keys: ${keys.join('+')}`);
+  }
+
+  /**
+   * Type keyboard keys (shortcuts like Enter, Ctrl+N, etc.)
+   */
+  async typeKeys(params: TypeKeysAction): Promise<void> {
+    const { keys, delay } = params;
+
+    if (!keys || keys.length === 0) {
+      throw new Error('Keys required');
+    }
+
+    // Map keys to PyAutoGUI format
+    const mappedKeys = keys.map((key) => this.mapKeyToPyAutoGUI(key));
+
+    if (mappedKeys.length === 1) {
+      // Single key press (e.g., Enter, Tab, Escape)
+      const pythonCode = this.omniboxClient.buildPyAutoGUICommand('press', {
+        keys: mappedKeys[0],
+      });
+      await this.omniboxClient.execute(pythonCode);
+    } else {
+      // Hotkey combination (e.g., Ctrl+N, Ctrl+S)
+      const keysList = mappedKeys.map((k) => `'${k}'`).join(', ');
+      const pythonCode = `import pyautogui; pyautogui.FAILSAFE = False; pyautogui.hotkey(${keysList})`;
+      await this.omniboxClient.execute(pythonCode);
+    }
+
+    if (delay && delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    this.logger.debug(`Typed keys: ${keys.join(',')}`);
+  }
+
+  /**
+   * Paste text using clipboard
+   */
+  async pasteText(params: PasteTextAction): Promise<void> {
+    const { text } = params;
+
+    if (!text) {
+      throw new Error('Text required');
+    }
+
+    // Escape special characters for Python string
+    const escapedText = text
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
+
+    // Use pyperclip to copy text to clipboard, then Ctrl+V to paste
+    const pythonCode = `
+import pyautogui
+import pyperclip
+pyautogui.FAILSAFE = False
+# Copy text to clipboard
+pyperclip.copy('${escapedText}')
+# Paste using Ctrl+V
+pyautogui.hotkey('ctrl', 'v')
+`;
+
+    await this.omniboxClient.execute(pythonCode);
+
+    this.logger.debug(`Pasted text: ${text.substring(0, 50)}...`);
   }
 
   /**
@@ -279,6 +526,136 @@ pyautogui.press('enter')
       height,
       displaySize: { width, height },
     };
+  }
+
+  /**
+   * Get cursor position
+   */
+  async getCursorPosition(): Promise<{ x: number; y: number }> {
+    const position = await this.omniboxClient.getCursorPosition();
+    this.logger.debug(`Cursor position: (${position.x}, ${position.y})`);
+    return position;
+  }
+
+  /**
+   * Read file from Windows filesystem
+   */
+  async readFile(
+    params: ReadFileAction,
+  ): Promise<{
+    success: boolean;
+    data?: string;
+    name?: string;
+    size?: number;
+    mediaType?: string;
+    message?: string;
+  }> {
+    try {
+      const { path: filePath } = params;
+
+      // Python code to read file and return base64
+      const pythonCode = `
+import os
+import base64
+import mimetypes
+import json
+
+file_path = r'${filePath.replace(/\\/g, '\\\\')}'
+
+# Resolve relative paths to Desktop
+if not os.path.isabs(file_path):
+    desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
+    file_path = os.path.join(desktop, file_path)
+
+# Read file
+with open(file_path, 'rb') as f:
+    data = f.read()
+
+# Get file info
+size = os.path.getsize(file_path)
+name = os.path.basename(file_path)
+media_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+
+# Encode to base64
+data_base64 = base64.b64encode(data).decode('utf-8')
+
+# Return JSON
+result = {
+    'success': True,
+    'data': data_base64,
+    'name': name,
+    'size': size,
+    'mediaType': media_type
+}
+
+print(json.dumps(result))
+`;
+
+      const output = await this.executeWithOutput(pythonCode);
+      const result = JSON.parse(output.trim());
+
+      this.logger.log(`File read successfully: ${filePath}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error reading file: ${error.message}`, error.stack);
+      return {
+        success: false,
+        message: `Error reading file: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Write file to Windows filesystem
+   */
+  async writeFile(
+    params: WriteFileAction,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const { path: filePath, data } = params;
+
+      // Escape the file path and data for Python
+      const escapedPath = filePath.replace(/\\/g, '\\\\');
+      const escapedData = data.replace(/'/g, "\\'");
+
+      // Python code to write file
+      const pythonCode = `
+import os
+import base64
+
+file_path = r'${escapedPath}'
+data_base64 = '${escapedData}'
+
+# Resolve relative paths to Desktop
+if not os.path.isabs(file_path):
+    desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
+    file_path = os.path.join(desktop, file_path)
+
+# Ensure directory exists
+directory = os.path.dirname(file_path)
+if directory and not os.path.exists(directory):
+    os.makedirs(directory)
+
+# Decode and write file
+data = base64.b64decode(data_base64)
+with open(file_path, 'wb') as f:
+    f.write(data)
+`;
+
+      await this.omniboxClient.execute(pythonCode);
+
+      this.logger.log(`File written successfully: ${filePath}`);
+      return {
+        success: true,
+        message: `File written successfully to: ${filePath}`,
+      };
+    } catch (error) {
+      this.logger.error(`Error writing file: ${error.message}`, error.stack);
+      return {
+        success: false,
+        message: `Error writing file: ${error.message}`,
+      };
+    }
   }
 
   /**

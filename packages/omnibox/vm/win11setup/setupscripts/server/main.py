@@ -88,7 +88,7 @@ def get_setup_status():
                 "stage": "Not started",
                 "details": "Waiting for Windows setup to begin",
                 "progress": 0,
-                "total": 12,
+                "total": 9,
                 "percent": 0.0,
                 "elapsed_seconds": 0,
                 "is_complete": False
@@ -99,7 +99,7 @@ def get_setup_status():
             "stage": "Unknown",
             "details": str(e),
             "progress": 0,
-            "total": 12,
+            "total": 9,
             "percent": 0.0,
             "elapsed_seconds": 0,
             "is_complete": False
