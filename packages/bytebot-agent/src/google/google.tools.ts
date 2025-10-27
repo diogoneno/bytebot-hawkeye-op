@@ -37,9 +37,20 @@ function convertJsonSchemaToGoogleSchema(schema: any): any {
     result.description = schema.description;
   }
 
-  // Only include enum if the property type is string; otherwise it is invalid for Google GenAI
-  if (schema.type === 'string' && schema.enum && Array.isArray(schema.enum)) {
-    result.enum = schema.enum;
+  // Handle enum constraints
+  if (schema.enum && Array.isArray(schema.enum)) {
+    if (schema.type === 'string') {
+      // String enums work natively with Google GenAI
+      result.enum = schema.enum;
+    } else if (schema.type === 'integer' || schema.type === 'number') {
+      // Google GenAI only supports string enums, so convert numeric enums to strings
+      // This preserves the constraint information (e.g., clickCount: [1,2,3] → ["1","2","3"])
+      result.enum = schema.enum.map((v: any) => String(v));
+      result.type = Type.STRING;
+      console.debug(
+        `[Google Tools] Converted ${schema.type} enum to string for Google API compatibility: [${schema.enum.join(', ')}] → ["${result.enum.join('", "')}"]`
+      );
+    }
   }
 
   if (schema.nullable) {

@@ -96,8 +96,15 @@ export class GoogleService implements BytebotAgentService {
           totalTokens: response.usageMetadata?.totalTokenCount || 0,
         },
       };
-    } catch (error) {
-      if (error.message.includes('AbortError')) {
+    } catch (error: any) {
+      // Check for abort errors more robustly (not just message string)
+      if (
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+         error.message?.includes('aborted') ||
+         error.message?.includes('cancelled'))
+      ) {
+        this.logger.log('Google API call aborted');
         throw new BytebotAgentInterrupt();
       }
       this.logger.error(
@@ -216,39 +223,50 @@ export class GoogleService implements BytebotAgentService {
               });
               break;
             case MessageContentType.ToolResult: {
-              const toolResultContentBlock = block.content[0];
-              if (toolResultContentBlock.type === MessageContentType.Image) {
+              // Process all content blocks in tool result (not just first one)
+              let hasText = false;
+              const images: any[] = [];
+
+              for (const toolResultContentBlock of block.content) {
+                if (toolResultContentBlock.type === MessageContentType.Text) {
+                  // Add text response
+                  parts.push({
+                    functionResponse: {
+                      id: block.tool_use_id,
+                      name: this.getToolName(block.tool_use_id, messages),
+                      response: {
+                        ...(!block.is_error && { output: toolResultContentBlock.text }),
+                        ...(block.is_error && { error: toolResultContentBlock.text }),
+                      },
+                    },
+                  });
+                  hasText = true;
+                } else if (toolResultContentBlock.type === MessageContentType.Image) {
+                  // Collect all images
+                  images.push({
+                    inlineData: {
+                      data: toolResultContentBlock.source.data,
+                      mimeType: toolResultContentBlock.source.media_type,
+                    },
+                  });
+                }
+              }
+
+              // If only images, add screenshot response
+              if (images.length > 0 && !hasText) {
                 parts.push({
                   functionResponse: {
                     id: block.tool_use_id,
                     name: 'screenshot',
                     response: {
-                      ...(!block.is_error && {
-                        output: 'screenshot successful',
-                      }),
-                      ...(block.is_error && { error: block.content[0] }),
+                      output: 'screenshot successful',
                     },
                   },
                 });
-                parts.push({
-                  inlineData: {
-                    data: toolResultContentBlock.source.data,
-                    mimeType: toolResultContentBlock.source.media_type,
-                  },
-                });
-                break;
               }
 
-              parts.push({
-                functionResponse: {
-                  id: block.tool_use_id,
-                  name: this.getToolName(block.tool_use_id, messages),
-                  response: {
-                    ...(!block.is_error && { output: block.content[0] }),
-                    ...(block.is_error && { error: block.content[0] }),
-                  },
-                },
-              });
+              // Add all collected images
+              parts.push(...images);
               break;
             }
             case MessageContentType.Thinking:
@@ -322,9 +340,18 @@ export class GoogleService implements BytebotAgentService {
       }
 
       if (part.functionCall) {
+        // Generate deterministic ID if Google doesn't provide one
+        const id = part.functionCall.id || `google_${Date.now()}_${part.functionCall.name}`;
+
+        if (!part.functionCall.id) {
+          this.logger.warn(
+            `Google API missing function call ID for ${part.functionCall.name}. Generated deterministic ID: ${id}`
+          );
+        }
+
         return {
           type: MessageContentType.ToolUse,
-          id: part.functionCall.id || uuid(),
+          id,
           name: part.functionCall.name,
           input: part.functionCall.args,
         } as ToolUseContentBlock;

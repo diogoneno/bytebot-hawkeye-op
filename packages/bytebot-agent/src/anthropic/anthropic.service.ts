@@ -45,10 +45,17 @@ export class AnthropicService implements BytebotAgentService {
       // Convert our message content blocks to Anthropic's expected format
       const anthropicMessages = this.formatMessagesForAnthropic(messages);
 
-      // add cache_control to last tool
-      anthropicTools[anthropicTools.length - 1].cache_control = {
-        type: 'ephemeral',
-      };
+      // Clone tools array and add cache_control to last tool (don't mutate global)
+      // This prevents race conditions with concurrent requests
+      const toolsWithCache = useTools ? anthropicTools.map((tool, idx) => {
+        if (idx === anthropicTools.length - 1) {
+          return {
+            ...tool,
+            cache_control: { type: 'ephemeral' as const },
+          };
+        }
+        return tool;
+      }) : [];
 
       // Make the API call
       const response = await anthropicClient.messages.create(
@@ -64,7 +71,7 @@ export class AnthropicService implements BytebotAgentService {
             },
           ],
           messages: anthropicMessages,
-          tools: useTools ? anthropicTools : [],
+          tools: toolsWithCache,
         },
         { signal },
       );
@@ -184,7 +191,8 @@ export class AnthropicService implements BytebotAgentService {
         );
       }
 
-      if (index === messages.length - 1) {
+      // Only add cache control to last content block if content array is non-empty
+      if (index === messages.length - 1 && content.length > 0) {
         content[content.length - 1]['cache_control'] = {
           type: 'ephemeral',
         };
