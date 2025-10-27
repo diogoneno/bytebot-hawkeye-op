@@ -97,7 +97,7 @@ export class ComputerUseService {
         return this.writeFile(params as WriteFileAction);
 
       default:
-        throw new Error(`Unsupported action: ${params.action}`);
+        throw new Error(`Unsupported action: ${(params as ComputerAction).action}`);
     }
   }
 
