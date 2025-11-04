@@ -1,0 +1,62 @@
+# .gitattributes - Enforce consistent line endings across platforms
+#
+# This prevents Windows line ending issues (CRLF) in shell scripts
+# that are executed in Docker Linux containers.
+#
+# References:
+# - https://git-scm.com/docs/gitattributes
+# - https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
+
+# Auto-detect text files and normalize line endings to LF in repository
+* text=auto
+
+# Shell scripts MUST have LF endings (critical for Docker builds on Windows)
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Docker and container files
+Dockerfile* text eol=lf
+*.dockerignore text eol=lf
+
+# YAML/config files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# TypeScript/JavaScript files
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+
+# Markdown and documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Windows-specific files (if any exist)
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files (don't modify)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.svg binary
+*.qcow2 binary
+*.iso binary
+*.img binary
+*.vdi binary
+*.vmdk binary
+*.vhdx binary
+*.vhd binary
