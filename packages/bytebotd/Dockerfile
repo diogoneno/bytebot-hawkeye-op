@@ -209,19 +209,11 @@ RUN node -e "const fs=require('fs'); const path=require('path'); const file=path
 # Clear npm cache to avoid stale builds
 RUN npm cache clean --force
 
-# Install bytebot-cv dependencies (no OpenCV)
+# Install bytebot-cv dependencies (no OpenCV, no Canvas)
 RUN cd ../bytebot-cv \
     && echo "Installing bytebot-cv dependencies (OmniParser + Tesseract.js only)..." \
     && npm install --no-workspaces --include=dev --ignore-engines \
-    && echo "✓ bytebot-cv dependencies installed successfully (no OpenCV)"
-
-# Rebuild Canvas for Node.js 20.x compatibility in bytebot-cv
-RUN cd ../bytebot-cv \
-    && echo "Rebuilding Canvas for Node.js 20.x compatibility in bytebot-cv..." \
-    && rm -rf node_modules/canvas/build 2>/dev/null || true \
-    && npm rebuild canvas --build-from-source \
-    && echo "✓ Canvas rebuilt successfully in bytebot-cv" \
-    && node -e "const canvas = require('canvas'); console.log('Canvas version in bytebot-cv:', canvas.version || 'available');"
+    && echo "✓ bytebot-cv dependencies installed successfully (no OpenCV, no Canvas)"
 
 # Install bytebotd dependencies
 RUN npm install --build-from-source --ignore-optional
@@ -245,13 +237,6 @@ RUN npm rebuild uiohook-napi --build-from-source
 RUN node -e "const fs=require('fs'); const path=require('path'); const file=path.join('package.json'); const pkg=JSON.parse(fs.readFileSync(file,'utf8')); pkg.dependencies['@bytebot/cv']='workspace:*'; fs.writeFileSync(file, JSON.stringify(pkg, null, 2)+'\n');"
 
 RUN npm run build
-
-# Final verification - ensure bytebot-cv can load canvas successfully
-RUN echo "=== Final Canvas Module Verification ===" \
-    && cd /bytebot/packages/bytebot-cv \
-    && echo "Testing canvas in bytebot-cv..." \
-    && node -e "try { const canvas = require('canvas'); console.log('✓ Canvas loaded successfully in bytebot-cv:', canvas.version || 'version unknown'); } catch(e) { console.error('✗ Canvas failed to load in bytebot-cv:', e.message); process.exit(1); }" \
-    && echo "✓ Canvas module verification passed!"
 
 WORKDIR /compile
 

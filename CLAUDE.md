@@ -169,7 +169,7 @@ npm run lint               # ESLint with --fix
 ```bash
 cd packages/bytebot-cv
 
-npm install                # Install dependencies (Tesseract.js, canvas)
+npm install                # Install dependencies (Tesseract.js only)
 npm run build              # TypeScript compilation
 npm run dev                # Watch mode
 
