@@ -32,13 +32,16 @@ services:
     # Strategy 3: Legacy runtime (older nvidia-docker setups)
     # Docker applies what's supported on the host automatically
 
-    # Explicit device mounts (most reliable method)
-    # These paths are standard for NVIDIA drivers
-    devices:
-      - /dev/nvidia0:/dev/nvidia0
-      - /dev/nvidiactl:/dev/nvidiactl
-      - /dev/nvidia-uvm:/dev/nvidia-uvm
-      - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+    # Explicit device mounts (DISABLED for Windows compatibility)
+    # These paths work on native Linux but don't exist in Windows WSL2,
+    # causing container startup failures. Modern CDI reservations (below)
+    # work on BOTH Windows and Linux, so explicit mounts are not needed.
+    # Uncomment only if you're on native Linux and CDI doesn't work.
+    # devices:
+    #   - /dev/nvidia0:/dev/nvidia0
+    #   - /dev/nvidiactl:/dev/nvidiactl
+    #   - /dev/nvidia-uvm:/dev/nvidia-uvm
+    #   - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
 
     # Legacy runtime support (for older setups without CDI)
     # Comment out if it causes issues on your system
