@@ -190,6 +190,7 @@ BYTEBOT_FORCE_PLATFORM=windows ./scripts/start.sh
 See [MODEL_LEARNING_SYSTEM.md](docs/MODEL_LEARNING_SYSTEM.md) for configuration details and API reference.
 
 ---
+![Model picker with integrated providers](docs/images/model_picker_3.png)
 
 ## 📊 Models Available
 
