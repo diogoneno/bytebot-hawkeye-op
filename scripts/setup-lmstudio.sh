@@ -37,13 +37,13 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Step 1: Ask for LMStudio IP
+# Step 1: Ask for LMStudio host
 echo "LMStudio allows running local Vision Language Models (VLMs) on your network."
-echo "Typical setup: LMStudio running on a separate machine with GPU."
+echo "Typical setup: LMStudio running locally or on a separate machine with GPU."
 echo ""
-read -p "Enter LMStudio IP address [192.168.4.250]: " LMSTUDIO_IP
-LMSTUDIO_IP=${LMSTUDIO_IP:-192.168.4.250}
-LMSTUDIO_URL="http://${LMSTUDIO_IP}:1234"
+read -p "Enter LMStudio host (IP or hostname) [localhost]: " LMSTUDIO_HOST
+LMSTUDIO_HOST=${LMSTUDIO_HOST:-localhost}
+LMSTUDIO_URL="http://${LMSTUDIO_HOST}:1234"
 
 echo ""
 
@@ -52,7 +52,7 @@ log_info "Testing connection to ${LMSTUDIO_URL}..."
 if ! curl -s -f -m 5 "${LMSTUDIO_URL}/v1/models" > /dev/null 2>&1; then
     log_error "Cannot connect to LMStudio at ${LMSTUDIO_URL}"
     log_error "Please ensure:"
-    log_error "  1. LMStudio is running on ${LMSTUDIO_IP}"
+log_error "  1. LMStudio is running on ${LMSTUDIO_HOST}"
     log_error "  2. Local server is enabled in LMStudio settings"
     log_error "  3. Port 1234 is accessible from this machine"
     log_error "  4. Firewall allows connections"
