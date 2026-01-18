@@ -44,12 +44,13 @@ echo ""
 read -p "Enter LMStudio host (IP or hostname) [localhost]: " LMSTUDIO_HOST
 LMSTUDIO_HOST=${LMSTUDIO_HOST:-localhost}
 LMSTUDIO_URL="http://${LMSTUDIO_HOST}:1234"
+LMSTUDIO_API_BASE="${LMSTUDIO_URL}/v1"
 
 echo ""
 
 # Step 2: Test connectivity
 log_info "Testing connection to ${LMSTUDIO_URL}..."
-if ! curl -s -f -m 5 "${LMSTUDIO_URL}/v1/models" > /dev/null 2>&1; then
+if ! curl -s -f -m 5 "${LMSTUDIO_API_BASE}/models" > /dev/null 2>&1; then
     log_error "Cannot connect to LMStudio at ${LMSTUDIO_URL}"
     log_error "Please ensure:"
 log_error "  1. LMStudio is running on ${LMSTUDIO_HOST}"
@@ -65,7 +66,7 @@ echo ""
 
 # Step 3: Fetch available models
 log_info "Fetching available models from LMStudio..."
-MODELS_JSON=$(curl -s "${LMSTUDIO_URL}/v1/models")
+MODELS_JSON=$(curl -s "${LMSTUDIO_API_BASE}/models")
 
 if [ -z "$MODELS_JSON" ] || [ "$MODELS_JSON" = "null" ]; then
     log_error "No response from LMStudio /v1/models endpoint"
@@ -143,7 +144,7 @@ echo "$VLM_MODELS" | while read -r model; do
   - model_name: local-lmstudio-${SAFE_NAME}
     litellm_params:
       model: openai/${model}
-      api_base: ${LMSTUDIO_URL}/v1
+      api_base: os.environ/LMSTUDIO_API_BASE
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -170,7 +171,7 @@ rm -f "${CONFIG_FILE}.tmp" "$TEMP_MODELS"
 log_success "Added ${VLM_COUNT} VLM model(s) to litellm-config.yaml"
 echo ""
 
-# Step 7: Update .env.defaults with LMStudio URL
+# Step 7: Update .env.defaults with LMStudio URL/API base
 ENV_DEFAULTS_FILE="$PROJECT_ROOT/docker/.env.defaults"
 ENV_FILE="$PROJECT_ROOT/docker/.env"
 
@@ -187,6 +188,15 @@ if [ -f "$ENV_DEFAULTS_FILE" ]; then
         echo "LMSTUDIO_URL=${LMSTUDIO_URL}" >> "$ENV_DEFAULTS_FILE"
         log_success "Added LMSTUDIO_URL to .env.defaults"
     fi
+
+    if grep -q "^LMSTUDIO_API_BASE=" "$ENV_DEFAULTS_FILE"; then
+        sed -i.tmp "s|^LMSTUDIO_API_BASE=.*|LMSTUDIO_API_BASE=${LMSTUDIO_API_BASE}|" "$ENV_DEFAULTS_FILE"
+        rm -f "${ENV_DEFAULTS_FILE}.tmp"
+        log_info "Updated LMSTUDIO_API_BASE in .env.defaults"
+    else
+        echo "LMSTUDIO_API_BASE=${LMSTUDIO_API_BASE}" >> "$ENV_DEFAULTS_FILE"
+        log_success "Added LMSTUDIO_API_BASE to .env.defaults"
+    fi
 else
     log_warn ".env.defaults file not found, skipping LMSTUDIO_URL configuration"
 fi
@@ -202,6 +212,17 @@ if [ -f "$ENV_FILE" ] && [ -f "$ENV_DEFAULTS_FILE" ]; then
             echo "LMSTUDIO_URL=$LMSTUDIO_VALUE" >> "$ENV_FILE"
         fi
         log_info "Synced LMSTUDIO_URL to .env"
+    fi
+
+    if grep -q "^LMSTUDIO_API_BASE=" "$ENV_DEFAULTS_FILE"; then
+        LMSTUDIO_API_BASE_VALUE=$(grep "^LMSTUDIO_API_BASE=" "$ENV_DEFAULTS_FILE" | cut -d= -f2-)
+        if grep -q "^LMSTUDIO_API_BASE=" "$ENV_FILE"; then
+            sed -i.tmp "s|^LMSTUDIO_API_BASE=.*|LMSTUDIO_API_BASE=$LMSTUDIO_API_BASE_VALUE|" "$ENV_FILE"
+            rm -f "${ENV_FILE}.tmp"
+        else
+            echo "LMSTUDIO_API_BASE=$LMSTUDIO_API_BASE_VALUE" >> "$ENV_FILE"
+        fi
+        log_info "Synced LMSTUDIO_API_BASE to .env"
     fi
 fi
 
