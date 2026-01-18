@@ -35,10 +35,10 @@ export class SmartClickHelper {
     options: { proxyUrl?: string; model?: string; progressDir?: string } = {},
   ) {
     this.proxyUrl = options.proxyUrl ?? process.env.BYTEBOT_LLM_PROXY_URL;
-    this.model =
-      options.model ??
-      process.env.BYTEBOT_SMART_FOCUS_MODEL ??
-      'gpt-4-vision-preview';
+    const resolvedModel = this.resolveSmartFocusModel(
+      options.model ?? process.env.BYTEBOT_SMART_FOCUS_MODEL,
+    );
+    this.model = resolvedModel;
     this.progressDir =
       options.progressDir ??
       process.env.BYTEBOT_SMART_FOCUS_PROGRESS_DIR ??
@@ -69,6 +69,19 @@ export class SmartClickHelper {
           },
         })
       : null;
+  }
+
+  private resolveSmartFocusModel(model?: string): string {
+    const trimmed = model?.trim();
+    if (!trimmed || trimmed === '*') {
+      if (trimmed === '*') {
+        console.warn(
+          '[SmartFocus] BYTEBOT_SMART_FOCUS_MODEL was "*"; falling back to default.',
+        );
+      }
+      return 'gpt-4o-mini';
+    }
+    return trimmed;
   }
 
   recordDesktopClickCorrection(
