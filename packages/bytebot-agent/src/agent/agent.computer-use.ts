@@ -152,8 +152,22 @@ async function getDesktopBaseUrl(): Promise<string> {
 const BYTEBOT_LLM_PROXY_URL = process.env.BYTEBOT_LLM_PROXY_URL as
   | string
   | undefined;
-const SMART_FOCUS_MODEL =
-  process.env.BYTEBOT_SMART_FOCUS_MODEL || 'gpt-4o-mini';
+const DEFAULT_SMART_FOCUS_MODEL = 'gpt-4o-mini';
+const resolveSmartFocusModel = (model?: string): string => {
+  const trimmed = model?.trim();
+  if (!trimmed || trimmed === '*') {
+    if (trimmed === '*') {
+      console.warn(
+        '[SmartFocus] BYTEBOT_SMART_FOCUS_MODEL was "*"; falling back to default.',
+      );
+    }
+    return DEFAULT_SMART_FOCUS_MODEL;
+  }
+  return trimmed;
+};
+const SMART_FOCUS_MODEL = resolveSmartFocusModel(
+  process.env.BYTEBOT_SMART_FOCUS_MODEL,
+);
 const SMART_FOCUS_ENABLED = process.env.BYTEBOT_SMART_FOCUS !== 'false';
 
 export const SCREENSHOT_REMINDER_TEXT =

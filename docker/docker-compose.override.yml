@@ -1,68 +1,14 @@
-# Docker Compose Override - Cross-Platform Optimizations
-# This file is automatically loaded by Docker Compose.
-#
-# 1. Force x86_64 Architecture
-#    - Ensures consistent builds across Mac (Apple Silicon), Linux, and Windows
-#    - On Apple Silicon: Uses Rosetta 2 emulation (~20% slower but stable)
-#    - On x86_64 systems: Native performance, no emulation
-#    - Benefits: Consistent OpenCV binaries, no platform-specific build issues
-#
-# 2. GPU Configuration for OmniParser
-#    - Supports both modern CDI and legacy nvidia-docker runtime
-#    - Automatically enables NVIDIA GPU if nvidia-container-toolkit is installed
-#    - Falls back to CPU if GPU not available (no errors)
-#    - Apple Silicon: GPU config ignored (no NVIDIA support in Docker)
-
 services:
-  bytebot-agent:
-    platform: linux/amd64
-
-  bytebot-desktop:
-    platform: linux/amd64
-
-  bytebot-ui:
-    platform: linux/amd64
-
   bytebot-omniparser:
-    platform: linux/amd64
-
-    # GPU Support - Multiple fallback strategies for maximum compatibility
-    # Strategy 1: Explicit device mounts (most reliable)
-    # Strategy 2: Modern CDI device reservation (Docker Compose 2.3+)
-    # Strategy 3: Legacy runtime (older nvidia-docker setups)
-    # Docker applies what's supported on the host automatically
-
-    # Explicit device mounts (DISABLED for Windows compatibility)
-    # These paths work on native Linux but don't exist in Windows WSL2,
-    # causing container startup failures. Modern CDI reservations (below)
-    # work on BOTH Windows and Linux, so explicit mounts are not needed.
-    # Uncomment only if you're on native Linux and CDI doesn't work.
-    # devices:
-    #   - /dev/nvidia0:/dev/nvidia0
-    #   - /dev/nvidiactl:/dev/nvidiactl
-    #   - /dev/nvidia-uvm:/dev/nvidia-uvm
-    #   - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
-
-    # Legacy runtime support (for older setups without CDI)
-    # Comment out if it causes issues on your system
-    runtime: nvidia
-
-    # Modern device reservation (preferred, works with CDI)
-    # Docker gracefully ignores if nvidia-container-toolkit not available
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: all
-              capabilities: [gpu, compute, utility]
-
-    # NVIDIA environment variables (required for both legacy and modern)
+              count: 1
+              capabilities: [gpu]
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      # Disable NVIDIA requirement check (allows CPU fallback)
-      - NVIDIA_REQUIRE_CUDA=
-
-  bytebot-llm-proxy:
-    platform: linux/amd64
+      - OMNIPARSER_DEVICE=cuda
+      # Force PyTorch to use Float32 to prevent the P100 "Half/Float" crash
+      - OMNIPARSER_PRECISION=fp32
+      - TORCH_DEFAULT_DTYPE=float32
