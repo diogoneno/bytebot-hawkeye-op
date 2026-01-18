@@ -114,6 +114,7 @@ Models are identified as VLMs if their name contains:
 ```bash
 # docker/.env.defaults
 LMSTUDIO_URL=http://localhost:1234
+LMSTUDIO_API_BASE=http://localhost:1234/v1
 ```
 
 ### Network Setup
@@ -121,17 +122,20 @@ LMSTUDIO_URL=http://localhost:1234
 **Same Machine:**
 ```bash
 LMSTUDIO_URL=http://localhost:1234
+LMSTUDIO_API_BASE=http://localhost:1234/v1
 ```
 
 **Separate Machine:**
 ```bash
 LMSTUDIO_URL=http://192.168.4.250:1234
+LMSTUDIO_API_BASE=http://192.168.4.250:1234/v1
 # Ensure firewall allows port 1234
 ```
 
 **Docker Host:**
 ```bash
 LMSTUDIO_URL=http://host.docker.internal:1234
+LMSTUDIO_API_BASE=http://host.docker.internal:1234/v1
 ```
 
 ## Example: Auto-Generated Configuration
@@ -146,7 +150,7 @@ model_list:
   - model_name: local-lmstudio-qwen2.5-vl-32b-instruct
     litellm_params:
       model: openai/qwen2.5-vl-32b-instruct
-      api_base: http://localhost:1234/v1
+      api_base: os.environ/LMSTUDIO_API_BASE
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -155,7 +159,7 @@ model_list:
   - model_name: local-lmstudio-llava-v1.6-34b
     litellm_params:
       model: openai/llava-v1.6-34b
-      api_base: http://localhost:1234/v1
+      api_base: os.environ/LMSTUDIO_API_BASE
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -164,7 +168,7 @@ model_list:
   - model_name: local-lmstudio-ui-tars-72b-dpo
     litellm_params:
       model: openai/ui-tars-72b-dpo
-      api_base: http://localhost:1234/v1
+      api_base: os.environ/LMSTUDIO_API_BASE
       api_key: lm-studio
       supports_function_calling: true
     model_info:
