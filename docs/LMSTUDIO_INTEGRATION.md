@@ -40,7 +40,7 @@ Bytebot Hawkeye supports **automatic discovery and configuration** of Vision Lan
 **Manual:**
 ```bash
 ./scripts/setup-lmstudio.sh
-# Enter LMStudio IP when prompted (default: 192.168.4.250)
+# Enter LMStudio host when prompted (default: localhost)
 ```
 
 ### 3. Restart Stack
@@ -64,7 +64,7 @@ Bytebot Hawkeye supports **automatic discovery and configuration** of Vision Lan
 ```
 setup-lmstudio.sh
     ↓
-1. Connect to http://{IP}:1234/v1/models
+1. Connect to http://{host}:1234/v1/models
     ↓
 2. Fetch all available models
     ↓
@@ -100,20 +100,20 @@ Models are identified as VLMs if their name contains:
 
 ## Configuration
 
-### LMStudio IP Address
+### LMStudio Host
 
-**Default:** `192.168.4.250`
+**Default:** `localhost`
 
 **Change via:**
 ```bash
 ./scripts/setup-lmstudio.sh
-# Enter new IP when prompted
+# Enter new host when prompted
 ```
 
 **Or edit `.env.defaults`:**
 ```bash
 # docker/.env.defaults
-LMSTUDIO_URL=http://192.168.4.250:1234
+LMSTUDIO_URL=http://localhost:1234
 ```
 
 ### Network Setup
@@ -146,7 +146,7 @@ model_list:
   - model_name: local-lmstudio-qwen2.5-vl-32b-instruct
     litellm_params:
       model: openai/qwen2.5-vl-32b-instruct
-      api_base: http://192.168.4.250:1234/v1
+      api_base: http://localhost:1234/v1
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -155,7 +155,7 @@ model_list:
   - model_name: local-lmstudio-llava-v1.6-34b
     litellm_params:
       model: openai/llava-v1.6-34b
-      api_base: http://192.168.4.250:1234/v1
+      api_base: http://localhost:1234/v1
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -164,7 +164,7 @@ model_list:
   - model_name: local-lmstudio-ui-tars-72b-dpo
     litellm_params:
       model: openai/ui-tars-72b-dpo
-      api_base: http://192.168.4.250:1234/v1
+      api_base: http://localhost:1234/v1
       api_key: lm-studio
       supports_function_calling: true
     model_info:
@@ -213,7 +213,7 @@ model_list:
 
 **Test manually:**
 ```bash
-curl http://192.168.4.250:1234/v1/models
+curl http://localhost:1234/v1/models
 ```
 
 ### "No VLM models found"
@@ -252,7 +252,7 @@ If auto-discovery doesn't work, manually add to `litellm-config.yaml`:
   - model_name: my-custom-vlm
     litellm_params:
       model: openai/my-model-name
-      api_base: http://192.168.4.250:1234/v1
+      api_base: http://localhost:1234/v1
       api_key: lm-studio
     model_info:
       supports_vision: true  # REQUIRED for VLMs
@@ -267,7 +267,7 @@ Configure multiple LMStudio instances:
   - model_name: lmstudio1-qwen2.5-vl
     litellm_params:
       model: openai/qwen2.5-vl-32b
-      api_base: http://192.168.4.250:1234/v1
+      api_base: http://localhost:1234/v1
       api_key: lm-studio
 
   # Server 2 (large models)
