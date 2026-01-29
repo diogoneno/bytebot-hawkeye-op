@@ -4,10 +4,22 @@ import { createProxyServer } from "http-proxy";
 import next from "next";
 import { createServer, ServerResponse } from "http";
 import dotenv from "dotenv";
+import fs from "fs";
 import { Socket } from "net";
+import path from "path";
 import http from "http";
 
 // Load environment variables
+const envDefaultsPathCandidates = [
+  path.resolve(process.cwd(), ".env.defaults"),
+  path.resolve(process.cwd(), "docker", ".env.defaults"),
+  path.resolve(process.cwd(), "..", "..", "docker", ".env.defaults"),
+];
+
+const envDefaultsPath = envDefaultsPathCandidates.find((candidate) => fs.existsSync(candidate));
+if (envDefaultsPath) {
+  dotenv.config({ path: envDefaultsPath });
+}
 dotenv.config();
 
 const dev = process.env.NODE_ENV !== "production";
