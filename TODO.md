@@ -47,3 +47,4 @@
 
 ## Hygiene Review Batches
 - [ ] Batch 1 (root + docker/ + helm/ + scripts/ + docs/ top-level) reviewed: `docs/hygiene-batch-1.md`.
+- [x] Batch 0 (root-level metadata + docs audit) reviewed: `.gitattributes`, `.gitignore`, `.prettierignore`, `AGENTS.md`, analysis reports, and root READMEs (2025-02-01).
