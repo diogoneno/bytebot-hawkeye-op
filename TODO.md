@@ -44,3 +44,6 @@
 - [ ] `npm run test:e2e --workspace bytebot-agent`
 - [ ] `npm run test:cov --workspace bytebot-agent`
 - [ ] `npm test --workspace bytebot-ui`
+
+## Hygiene Review Batches
+- [ ] Batch 1 (root + docker/ + helm/ + scripts/ + docs/ top-level) reviewed: `docs/hygiene-batch-1.md`.
