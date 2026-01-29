@@ -5,9 +5,14 @@ services:
         reservations:
           devices:
             - driver: nvidia
+              device_ids:
+                - ${OMNIPARSER_GPU_DEVICE_ID:-0}
               count: 1
               capabilities: [gpu]
     environment:
+      # Pin OmniParser to a specific GPU (defaults to GPU 0)
+      - NVIDIA_VISIBLE_DEVICES=${OMNIPARSER_GPU_DEVICE_ID:-0}
+      - CUDA_VISIBLE_DEVICES=${OMNIPARSER_GPU_DEVICE_ID:-0}
       - OMNIPARSER_DEVICE=cuda
       # Force PyTorch to use Float32 to prevent the P100 "Half/Float" crash
       - OMNIPARSER_PRECISION=fp32
