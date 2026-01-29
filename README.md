@@ -1,10 +1,17 @@
 <div align="center">
 
-<img src="docs/images/bytebot-logo.png" width="500" alt="Bytebot Logo">
+<img src="docs/images/bytebot-logo.png" width="500" alt="Project Ares Logo">
 
-# Bytebot Hawkeye: Precision AI Desktop Agent
+# Project Ares: Precision AI Desktop Agent
 
 **An AI desktop agent with enhanced targeting, GPU-accelerated computer vision, and 89% click accuracy**
+
+**Naming map (Ares build IDs):**
+- **Ares NX-01** — Core agent (Neuron eXecutor)
+- **Ares NT-01** — Vision stack (Neural Telescope)
+- **Ares AX-01** — UI action layer / hands (Actuator)
+- **Ares RX-01** — Audit & evidence recorder (Recorder)
+- **Ares GX-01** — Safety gates (Gatekeeper, optional)
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/bytebot?referralCode=L9lKXQ)
 </div>
