@@ -1,10 +1,29 @@
 model_list:
-  - model_name: gpt-4o
+  # Example LMStudio model (replace with your preferred local model)
+  - model_name: local-lmstudio-example
     litellm_params:
       model: openai/local-model
-      # UPDATE THIS TO THE NEW IP: 172.20.0.1
-      api_base: "http://172.20.0.1:1234/v1"
-      api_key: "lm-studio"
+      api_base: os.environ/LMSTUDIO_API_BASE
+      api_key: lm-studio
+      supports_function_calling: true
+    model_info:
+      supports_vision: true
+
+  # LMStudio VLM models (auto-discovered on YYYY-MM-DD HH:MM:SS)
+  # Run ./scripts/setup-lmstudio.sh to populate this section.
+
+  # vLLM VLM models (auto-discovered on YYYY-MM-DD HH:MM:SS)
+  # Run ./scripts/setup-vllm.sh to populate this section.
+
+  # Add local models via vLLM (manual example)
+  - model_name: local-vllm-example
+    litellm_params:
+      model: openai/your-vllm-model
+      api_base: os.environ/VLLM_API_BASE
+      api_key: os.environ/VLLM_API_KEY
+      supports_function_calling: true
+    model_info:
+      supports_vision: true
 
 litellm_settings:
   drop_params: true

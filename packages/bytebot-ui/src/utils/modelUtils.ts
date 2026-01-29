@@ -10,6 +10,7 @@ export const PROVIDER_CATEGORIES = {
   OPENROUTER: "OpenRouter",
   LMSTUDIO: "LM Studio (Local)",
   OLLAMA: "Ollama (Local)",
+  VLLM: "vLLM (Local)",
   OTHER: "Other",
 } as const;
 
@@ -23,6 +24,7 @@ const PROVIDER_ORDER = [
   PROVIDER_CATEGORIES.OPENROUTER,
   PROVIDER_CATEGORIES.LMSTUDIO,
   PROVIDER_CATEGORIES.OLLAMA,
+  PROVIDER_CATEGORIES.VLLM,
   PROVIDER_CATEGORIES.OTHER,
 ];
 
@@ -77,6 +79,15 @@ export function categorizeModel(model: Model): string {
     name.includes("ollama/")
   ) {
     return PROVIDER_CATEGORIES.OLLAMA;
+  }
+
+  // Check for vLLM local models
+  if (
+    title.includes("local-vllm") ||
+    name.includes("vllm") ||
+    name.includes("openai-compatible/")
+  ) {
+    return PROVIDER_CATEGORIES.VLLM;
   }
 
   // Check for OpenRouter models
@@ -143,6 +154,8 @@ export function getProviderBadgeColor(category: string): string {
       return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400";
     case PROVIDER_CATEGORIES.OLLAMA:
       return "bg-teal-500/10 text-teal-600 dark:text-teal-400";
+    case PROVIDER_CATEGORIES.VLLM:
+      return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400";
     default:
       return "bg-gray-500/10 text-gray-600 dark:text-gray-400";
   }

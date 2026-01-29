@@ -205,6 +205,16 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
             ./scripts/setup-lmstudio.sh || true
         fi
 
+        # vLLM Configuration (optional)
+        echo ""
+        echo -e "${BLUE}vLLM Configuration:${NC}"
+        echo "Configure local VLM models from vLLM?"
+        read -p "[y/N]: " setup_vllm
+
+        if [[ $setup_vllm =~ ^[Yy]$ ]]; then
+            ./scripts/setup-vllm.sh || true
+        fi
+
         # Ollama Configuration (optional)
         echo ""
         echo -e "${BLUE}Ollama Configuration:${NC}"
@@ -276,6 +286,16 @@ if [[ "$ARCH" == "arm64" ]] && [[ "$OS" == "Darwin" ]]; then
 
         if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
             ./scripts/setup-lmstudio.sh || true
+        fi
+
+        # vLLM Configuration (optional)
+        echo ""
+        echo -e "${BLUE}vLLM Configuration:${NC}"
+        echo "Configure local VLM models from vLLM?"
+        read -p "[y/N]: " setup_vllm
+
+        if [[ $setup_vllm =~ ^[Yy]$ ]]; then
+            ./scripts/setup-vllm.sh || true
         fi
 
         # Ollama Configuration (optional)
@@ -384,6 +404,16 @@ elif [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
 
     if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
         ./scripts/setup-lmstudio.sh || true
+    fi
+
+    # vLLM Configuration (optional)
+    echo ""
+    echo -e "${BLUE}vLLM Configuration:${NC}"
+    echo "Configure local VLM models from vLLM?"
+    read -p "[y/N]: " setup_vllm
+
+    if [[ $setup_vllm =~ ^[Yy]$ ]]; then
+        ./scripts/setup-vllm.sh || true
     fi
 
     # Ollama Configuration (optional)
