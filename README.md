@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/bytebot-logo.png" width="500" alt="Project Ares Logo">
+<img src="docs/images/hawkeye-desktop.svg" width="500" alt="Project Ares Logo">
 
 # Project Ares: Precision AI Desktop Agent
 
@@ -13,7 +13,6 @@
 - **Ares RX-01** — Audit & evidence recorder (Recorder)
 - **Ares GX-01** — Safety gates (Gatekeeper, optional)
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/bytebot?referralCode=L9lKXQ)
 </div>
 
 <details>
@@ -21,23 +20,8 @@
 
 <div align="center">
 
-<a href="https://trendshift.io/repositories/14624" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14624" alt="bytebot-ai%2Fbytebot | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://github.com/bytebot-ai/bytebot/tree/main/docker)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Discord](https://img.shields.io/discord/1232768900274585720?color=7289da&label=discord)](https://discord.com/invite/d9ewZkWPTP)
-
-[🌐 Website](https://bytebot.ai) • [📚 Documentation](https://docs.bytebot.ai) • [💬 Discord](https://discord.com/invite/d9ewZkWPTP) • [𝕏 Twitter](https://x.com/bytebot_ai)
-
-<!-- Keep these links. Translations will automatically update with the README. -->
-[Deutsch](https://zdoc.app/de/bytebot-ai/bytebot) |
-[Español](https://zdoc.app/es/bytebot-ai/bytebot) |
-[français](https://zdoc.app/fr/bytebot-ai/bytebot) |
-[日本語](https://zdoc.app/ja/bytebot-ai/bytebot) |
-[한국어](https://zdoc.app/ko/bytebot-ai/bytebot) |
-[Português](https://zdoc.app/pt/bytebot-ai/bytebot) |
-[Русский](https://zdoc.app/ru/bytebot-ai/bytebot) |
-[中文](https://zdoc.app/zh/bytebot-ai/bytebot)
+📚 [Documentation](docs)
 
 </div>
 </details>
@@ -224,25 +208,23 @@ See [MODEL_LEARNING_SYSTEM.md](docs/MODEL_LEARNING_SYSTEM.md) for configuration 
 
 ---
 
-## Hawkeye Fork Enhancements
+## Hawkeye Enhancements
 
-Hawkeye layers precision tooling on top of upstream Bytebot for reliable autonomous operation:
+Hawkeye layers precision tooling for reliable autonomous operation:
 
-| Capability | Hawkeye | Upstream Bytebot |
-| --- | --- | --- |
-| **Windows 11 desktop** | Full OmniBox integration with automated setup, progress tracking, PyAutoGUI control, region screenshots | Linux-only bytebotd |
-| **Trajectory recording UI** | Visual badge with pause/resume, 2x2 stats grid, provider breakdown, clean empty states | Command-line only |
-| **Grid overlay guidance** | Always-on coordinate grids with labeled axes, optional debug overlays (`BYTEBOT_GRID_OVERLAY`/`BYTEBOT_GRID_DEBUG`) | No persistent spatial scaffolding |
-| **Smart Focus targeting** | Three-stage coarse→focus→click workflow with tunable grids ([Smart Focus System](docs/SMART_FOCUS_SYSTEM.md)) | Single-shot click reasoning |
-| **Progressive zoom capture** | Deterministic zoom ladder with cyan micro-grids and coordinate reconciliation | Manual zoom without coordinate mapping |
-| **Coordinate telemetry** | Real-time accuracy metrics with `BYTEBOT_COORDINATE_METRICS` and `BYTEBOT_COORDINATE_DEBUG` | No automated accuracy measurement |
-| **Universal coordinate mapping** | Shared lookup in `config/universal-coordinates.yaml` auto-discovered across packages | Requires custom configuration |
-| **OmniParser v2.0 semantic detection** | **100% integration:** YOLOv8 + Florence-2 + OCR + interactivity detection + batch captioning (**89% accuracy**) | Basic screenshot analysis |
-| **Streamlined CV pipeline** | Two-method detection (OmniParser primary + Tesseract.js OCR fallback), OpenCV removed | Pixel-based analysis only |
-| **Real-time CV monitoring** | Live tracking with animated indicators, GPU detection, model display (YOLOv8 + Florence-2), performance metrics | No CV visibility |
-| **GPU acceleration** | Auto-detected NVIDIA CUDA/Apple Silicon MPS with real-time device reporting (⚡/🍎/💻 badges) | No GPU support |
-| **Accessible UI theming** | Header theme toggle for high-contrast light/dark palettes | Single default theme |
-| **Active Model telemetry** | Desktop dashboard card shows current provider, model, streaming heartbeat | Must tail logs to confirm model |
+- **Windows 11 desktop** - Full OmniBox integration with automated setup, progress tracking, PyAutoGUI control, region screenshots
+- **Trajectory recording UI** - Visual badge with pause/resume, 2x2 stats grid, provider breakdown, clean empty states
+- **Grid overlay guidance** - Always-on coordinate grids with labeled axes, optional debug overlays (`BYTEBOT_GRID_OVERLAY`/`BYTEBOT_GRID_DEBUG`)
+- **Smart Focus targeting** - Three-stage coarse→focus→click workflow with tunable grids ([Smart Focus System](docs/SMART_FOCUS_SYSTEM.md))
+- **Progressive zoom capture** - Deterministic zoom ladder with cyan micro-grids and coordinate reconciliation
+- **Coordinate telemetry** - Real-time accuracy metrics with `BYTEBOT_COORDINATE_METRICS` and `BYTEBOT_COORDINATE_DEBUG`
+- **Universal coordinate mapping** - Shared lookup in `config/universal-coordinates.yaml` auto-discovered across packages
+- **OmniParser v2.0 semantic detection** - **100% integration:** YOLOv8 + Florence-2 + OCR + interactivity detection + batch captioning (**89% accuracy**)
+- **Streamlined CV pipeline** - Two-method detection (OmniParser primary + Tesseract.js OCR fallback), OpenCV removed
+- **Real-time CV monitoring** - Live tracking with animated indicators, GPU detection, model display (YOLOv8 + Florence-2), performance metrics
+- **GPU acceleration** - Auto-detected NVIDIA CUDA/Apple Silicon MPS with real-time device reporting (⚡/🍎/💻 badges)
+- **Accessible UI theming** - Header theme toggle for high-contrast light/dark palettes
+- **Active Model telemetry** - Desktop dashboard card shows current provider, model, streaming heartbeat
 
 **Configuration:** Toggle features via environment variables (`BYTEBOT_SMART_FOCUS`, `BYTEBOT_UNIVERSAL_TEACHING`, `BYTEBOT_ADAPTIVE_CALIBRATION`, etc.)
 
@@ -385,9 +367,9 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 ### Alternative Deployments
 
-- [Railway one-click template](https://docs.bytebot.ai/deployment/railway)
-- [Helm charts for Kubernetes](https://docs.bytebot.ai/deployment/helm)
-- [Custom Docker Compose topologies](https://docs.bytebot.ai/deployment/litellm)
+- [Railway one-click template](docs/deployment/railway.mdx)
+- [Helm charts for Kubernetes](docs/deployment/helm.mdx)
+- [Custom Docker Compose topologies](docs/deployment/litellm.mdx)
 
 ---
 
@@ -514,16 +496,7 @@ Increase for higher cursor drift tolerance, decrease for stricter accuracy requi
 
 ## Further Reading
 
-- [Bytebot upstream README](https://github.com/bytebot-ai/bytebot#readme)
-- [Quickstart guide](https://docs.bytebot.ai/quickstart)
-- [API reference](https://docs.bytebot.ai/api-reference/introduction)
+- [Quickstart guide](docs/quickstart.mdx)
+- [API reference](docs/api-reference/introduction.mdx)
 - [Smart Focus System](docs/SMART_FOCUS_SYSTEM.md)
 - [GPU Setup Guide](docs/GPU_SETUP.md)
-
----
-
-<div align="center">
-
-**Built on [Bytebot](https://github.com/bytebot-ai/bytebot) • Enhanced with Hawkeye precision tooling**
-
-</div>
