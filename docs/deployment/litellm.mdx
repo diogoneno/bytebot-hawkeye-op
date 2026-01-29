@@ -211,6 +211,20 @@ model_list:
       api_base: http://ollama:11434
 ```
 
+### Local Models (vLLM)
+
+```yaml
+model_list:
+  - model_name: local-vllm-qwen2-vl
+    litellm_params:
+      model: openai/Qwen/Qwen2-VL-7B-Instruct
+      api_base: http://vllm:8000/v1
+      api_key: os.environ/VLLM_API_KEY
+      supports_function_calling: true
+    model_info:
+      supports_vision: true
+```
+
 ### Hugging Face
 
 ```yaml

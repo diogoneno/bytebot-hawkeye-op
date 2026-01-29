@@ -296,8 +296,18 @@ if [[ $setup_lmstudio =~ ^[Yy]$ ]]; then
 fi
 echo ""
 
+# vLLM Configuration (optional)
+echo -e "${BLUE}Step 7.6: vLLM Model Discovery (optional)${NC}"
+echo "vLLM allows running OpenAI-compatible models on your GPU/CPU server."
+read -p "Configure vLLM models? [y/N]: " setup_vllm
+
+if [[ $setup_vllm =~ ^[Yy]$ ]]; then
+    ./scripts/setup-vllm.sh || true
+fi
+echo ""
+
 # Ollama Configuration (optional)
-echo -e "${BLUE}Step 7.6: Ollama Model Discovery (optional)${NC}"
+echo -e "${BLUE}Step 7.7: Ollama Model Discovery (optional)${NC}"
 echo "Ollama allows running local VLM models on your machine."
 read -p "Configure Ollama models? [y/N]: " setup_ollama
 
