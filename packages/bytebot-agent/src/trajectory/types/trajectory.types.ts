@@ -124,6 +124,23 @@ export interface TrajectorySearchParams {
   minQuality?: number;
 }
 
+export type FailureTaxonomyLabel =
+  | 'grounding_error'
+  | 'ui_drift'
+  | 'instruction_ambiguity'
+  | 'privilege_boundary'
+  | 'evaluator_mismatch';
+
+export interface FailureTaxonomyDefinition {
+  label: FailureTaxonomyLabel;
+  description: string;
+}
+
+export interface FailureSummary {
+  totalFailed: number;
+  byLabel: Record<FailureTaxonomyLabel, number>;
+}
+
 /**
  * Export format for fine-tuning
  */
@@ -135,6 +152,8 @@ export interface TrajectoryExport {
     totalTrajectories: number;
     successRate: number;
     averageQuality: number;
+    failureTaxonomy?: FailureTaxonomyDefinition[];
+    failureSummary?: FailureSummary;
   };
 }
 
@@ -148,6 +167,8 @@ export interface ExportedTrajectory {
     modelProvider: string;
     success: boolean;
     qualityScore?: number;
+    failureLabels?: FailureTaxonomyLabel[];
+    failureReason?: string | null;
   };
   replay?: ReplayExportMetadata;
 }
@@ -172,6 +193,7 @@ export type TrajectoryWithRelations = TaskTrajectory & {
     id: string;
     description: string;
     status: string;
+    error?: string | null;
   };
 };
 

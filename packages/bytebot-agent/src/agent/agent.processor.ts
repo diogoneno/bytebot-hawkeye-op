@@ -1340,6 +1340,7 @@ Do NOT take screenshots without acting. Do NOT repeat previous actions. Choose o
           );
           await this.tasksService.update(taskId, {
             status: TaskStatus.FAILED,
+            error: failureReason,
             completedAt: failureTimestamp,
             executedAt: task.executedAt ?? failureTimestamp,
           });
