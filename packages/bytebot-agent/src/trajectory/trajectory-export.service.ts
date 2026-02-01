@@ -4,6 +4,9 @@ import {
   TrajectoryExport,
   ExportedTrajectory,
   TrajectoryWithRelations,
+  ReplayExportMetadata,
+  ReplayMetadata,
+  ReplayActionMetadata,
 } from './types/trajectory.types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -103,6 +106,9 @@ export class TrajectoryExportService {
           success: trajectory.success,
           qualityScore: trajectory.qualityScore,
         },
+        replay: this.buildReplayExportMetadata(
+          trajectory as TrajectoryWithRelations,
+        ),
       });
     }
 
@@ -235,6 +241,51 @@ export class TrajectoryExportService {
     return messages;
   }
 
+  private buildReplayExportMetadata(
+    trajectory: TrajectoryWithRelations,
+  ): ReplayExportMetadata {
+    const steps = trajectory.steps.map((step) =>
+      this.normalizeReplayStep(step, trajectory.taskId),
+    );
+
+    return {
+      trajectoryId: trajectory.id,
+      taskId: trajectory.taskId,
+      steps,
+    };
+  }
+
+  private normalizeReplayStep(
+    step: TrajectoryWithRelations['steps'][number],
+    taskId: string,
+  ): ReplayMetadata {
+    const stepId = step.stepId ?? `${taskId}:${step.iterationNumber}`;
+    const replay = step.replayMetadata as ReplayMetadata | null;
+    if (replay?.actions?.length) {
+      return {
+        ...replay,
+        stepId,
+        iterationNumber: step.iterationNumber,
+      };
+    }
+
+    const toolCalls = Array.isArray(step.toolCalls) ? step.toolCalls : [];
+    const actions: ReplayActionMetadata[] = toolCalls.map((call: any) => ({
+      toolUseId: call.id,
+      action: call.name,
+      obsPre: (step.obsPre as ReplayActionMetadata['obsPre']) ?? null,
+      obsPost: (step.obsPost as ReplayActionMetadata['obsPost']) ?? null,
+      gridMetadata: null,
+      coordinateTelemetry: null,
+    }));
+
+    return {
+      stepId,
+      iterationNumber: step.iterationNumber,
+      actions,
+    };
+  }
+
   /**
    * Write export data to file
    */
@@ -249,7 +300,11 @@ export class TrajectoryExportService {
     if (exportData.format === 'openai') {
       // OpenAI format: JSONL (one JSON object per line)
       const lines = exportData.trajectories.map((t) =>
-        JSON.stringify({ messages: t.messages }),
+        JSON.stringify({
+          messages: t.messages,
+          metadata: t.metadata,
+          replay: t.replay,
+        }),
       );
       await fs.writeFile(outputPath, lines.join('\n'));
       this.logger.log(`Wrote ${lines.length} examples to ${outputPath}`);
