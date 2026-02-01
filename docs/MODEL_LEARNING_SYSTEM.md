@@ -145,6 +145,15 @@ Options:
 - `--limit`: max number of trajectories
 - `--model-provider`: filter by provider
 
+#### Validate Trajectory Fixture Traces
+
+Run the regression check that validates the JSONL fixtures and recalculates
+their expected metrics:
+
+```bash
+node scripts/check-trajectory-fixtures.mjs
+```
+
 #### Export Statistics
 
 ```typescript
