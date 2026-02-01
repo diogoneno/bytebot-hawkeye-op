@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-02-01T12:04:24.050Z",
+  "inputs": {
+    "traceFiles": [],
+    "evaluatorFiles": [],
+    "missingTracePaths": [
+      "outputs/trace"
+    ],
+    "missingEvaluatorPaths": [
+      "outputs/evaluator"
+    ]
+  },
+  "counts": {
+    "totalSteps": 0,
+    "flaggedSteps": 0,
+    "blockedSteps": 0,
+    "overrideSteps": 0,
+    "evaluatedFlags": 0,
+    "falseFlags": 0
+  },
+  "rates": {
+    "flaggedStepRate": null,
+    "blockRate": null,
+    "overrideRate": null,
+    "falseFlagRate": null
+  },
+  "parseErrors": []
+}
