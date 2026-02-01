@@ -4,9 +4,14 @@ import {
   TrajectoryExport,
   ExportedTrajectory,
   TrajectoryWithRelations,
+  FailureSummary,
 } from './types/trajectory.types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import {
+  FAILURE_TAXONOMY,
+  classifyFailureLabels,
+} from './failure-taxonomy';
 
 /**
  * Exports trajectories in various formats for fine-tuning
@@ -60,6 +65,7 @@ export class TrajectoryExportService {
           select: {
             description: true,
             status: true,
+            error: true,
           },
         },
       },
@@ -71,6 +77,17 @@ export class TrajectoryExportService {
 
     // Convert to format-specific structure
     const exportedTrajectories: ExportedTrajectory[] = [];
+
+    const failureSummary: FailureSummary = {
+      totalFailed: 0,
+      byLabel: {
+        grounding_error: 0,
+        ui_drift: 0,
+        instruction_ambiguity: 0,
+        privilege_boundary: 0,
+        evaluator_mismatch: 0,
+      },
+    };
 
     for (const trajectory of trajectories) {
       let messages: any[];
@@ -95,6 +112,20 @@ export class TrajectoryExportService {
           throw new Error(`Unsupported export format: ${format}`);
       }
 
+      const failureLabels = trajectory.success
+        ? undefined
+        : classifyFailureLabels({
+            error: trajectory.task?.error,
+            status: trajectory.task?.status,
+          });
+
+      if (!trajectory.success) {
+        failureSummary.totalFailed += 1;
+        (failureLabels ?? []).forEach((label) => {
+          failureSummary.byLabel[label] += 1;
+        });
+      }
+
       exportedTrajectories.push({
         messages,
         metadata: {
@@ -102,6 +133,8 @@ export class TrajectoryExportService {
           modelProvider: trajectory.modelProvider,
           success: trajectory.success,
           qualityScore: trajectory.qualityScore,
+          failureLabels,
+          failureReason: trajectory.task?.error ?? null,
         },
       });
     }
@@ -124,6 +157,10 @@ export class TrajectoryExportService {
         totalTrajectories: trajectories.length,
         successRate: trajectories.length > 0 ? successCount / trajectories.length : 0,
         averageQuality,
+        failureTaxonomy: FAILURE_TAXONOMY,
+        ...(failureSummary.totalFailed > 0
+          ? { failureSummary }
+          : undefined),
       },
     };
 
