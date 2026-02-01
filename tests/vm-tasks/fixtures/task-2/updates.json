@@ -1,0 +1,5 @@
+[
+  {"sku": "A100", "delta": -2},
+  {"sku": "B205", "delta": 5},
+  {"sku": "D410", "name": "Thingamabob", "delta": 9}
+]

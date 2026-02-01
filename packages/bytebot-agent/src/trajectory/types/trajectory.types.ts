@@ -6,6 +6,7 @@
  */
 
 import { TaskTrajectory, TrajectoryStep, FewShotExample } from '@prisma/client';
+import { Coordinates } from '@bytebot/shared';
 
 /**
  * Configuration for trajectory recording
@@ -39,12 +40,18 @@ export interface FewShotConfig {
  * Snapshot of a single iteration for trajectory recording
  */
 export interface IterationSnapshot {
+  stepId: string;
   iterationNumber: number;
   systemPrompt: string;
   messages: any[]; // Message content blocks
   toolCalls?: any[]; // Tool use blocks
   toolResults?: any[]; // Tool result blocks
   reasoning?: string; // For o1/o3 models
+  obsPre?: ObservationSnapshot | null;
+  obsPost?: ObservationSnapshot | null;
+  gridMetadata?: GridMetadata[];
+  coordinateTelemetry?: CoordinateTelemetry[];
+  replayMetadata?: ReplayMetadata;
   tokenUsage: {
     input: number;
     output: number;
@@ -163,6 +170,7 @@ export interface ExportedTrajectory {
     failureLabels?: FailureTaxonomyLabel[];
     failureReason?: string | null;
   };
+  replay?: ReplayExportMetadata;
 }
 
 /**
@@ -188,6 +196,58 @@ export type TrajectoryWithRelations = TaskTrajectory & {
     error?: string | null;
   };
 };
+
+export interface ObservationSnapshot {
+  image?: string;
+  offset?: { x: number; y: number };
+  region?: { x: number; y: number; width: number; height: number };
+  zoomLevel?: number;
+  gridOverlay?: boolean | null;
+  gridSize?: number | null;
+  timestamp: Date;
+  source: 'tool_result' | 'history' | 'none';
+}
+
+export interface GridMetadata {
+  toolUseId: string;
+  action: string;
+  gridOverlay?: boolean | null;
+  gridSize?: number | null;
+  region?: { x: number; y: number; width: number; height: number } | null;
+  offset?: { x: number; y: number } | null;
+  zoomLevel?: number | null;
+  includeOffset?: boolean | null;
+}
+
+export interface CoordinateTelemetry {
+  toolUseId: string;
+  action: string;
+  coordinates?: Coordinates | null;
+  fallbackCoordinates?: Coordinates | null;
+  elementId?: string | null;
+  description?: string | null;
+}
+
+export interface ReplayActionMetadata {
+  toolUseId: string;
+  action: string;
+  obsPre: ObservationSnapshot | null;
+  obsPost: ObservationSnapshot | null;
+  gridMetadata?: GridMetadata | null;
+  coordinateTelemetry?: CoordinateTelemetry | null;
+}
+
+export interface ReplayMetadata {
+  stepId: string;
+  iterationNumber: number;
+  actions: ReplayActionMetadata[];
+}
+
+export interface ReplayExportMetadata {
+  trajectoryId: string;
+  taskId: string;
+  steps: ReplayMetadata[];
+}
 
 /**
  * Few-shot example with usage stats

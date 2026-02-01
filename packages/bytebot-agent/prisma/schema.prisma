@@ -178,12 +178,18 @@ model TrajectoryStep {
   trajectory         TaskTrajectory  @relation(fields: [trajectoryId], references: [id], onDelete: Cascade)
 
   // Iteration data
+  stepId             String
   iterationNumber    Int
   systemPrompt       String          @db.Text
   messagesSnapshot   Json            // Messages array at this iteration
   toolCalls          Json?           // Tool use blocks from this iteration
   toolResults        Json?           // Tool result blocks from this iteration
   reasoning          String?         @db.Text // For models that expose reasoning (o1/o3)
+  obsPre             Json?
+  obsPost            Json?
+  gridMetadata       Json?
+  coordinateTelemetry Json?
+  replayMetadata     Json?
 
   // Token usage for this step
   tokenUsageInput    Int             @default(0)

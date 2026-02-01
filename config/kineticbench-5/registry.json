@@ -1,0 +1,24 @@
+{
+  "benchmark": "KineticBench-5",
+  "version": "5.0",
+  "tasks": [
+    {
+      "id": "kb5-001",
+      "name": "Launch notes app",
+      "description": "Open the system Notes application and create a new note titled \"KineticBench\".",
+      "expectedOutcome": "A new note titled \"KineticBench\" exists in the Notes app.",
+      "metadata": {
+        "domain": "desktop"
+      }
+    },
+    {
+      "id": "kb5-002",
+      "name": "Check system settings",
+      "description": "Open System Settings and navigate to the Network pane.",
+      "expectedOutcome": "The Network settings pane is visible on screen.",
+      "metadata": {
+        "domain": "desktop"
+      }
+    }
+  ]
+}

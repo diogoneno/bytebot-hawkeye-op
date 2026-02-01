@@ -1,0 +1,5 @@
+[
+  {"sku": "A100", "name": "Widget", "quantity": 12},
+  {"sku": "B205", "name": "Gadget", "quantity": 7},
+  {"sku": "C300", "name": "Doohickey", "quantity": 3}
+]

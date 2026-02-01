@@ -243,12 +243,18 @@ export class TrajectoryRecorderService {
         completedAt: trajectory.completedAt,
         steps: {
           create: trajectory.iterations.map((iteration) => ({
+            stepId: iteration.stepId,
             iterationNumber: iteration.iterationNumber,
             systemPrompt: iteration.systemPrompt,
             messagesSnapshot: iteration.messages,
             toolCalls: iteration.toolCalls || null,
             toolResults: iteration.toolResults || null,
             reasoning: iteration.reasoning || null,
+            obsPre: iteration.obsPre || null,
+            obsPost: iteration.obsPost || null,
+            gridMetadata: iteration.gridMetadata || null,
+            coordinateTelemetry: iteration.coordinateTelemetry || null,
+            replayMetadata: iteration.replayMetadata || null,
             tokenUsageInput: iteration.tokenUsage.input,
             tokenUsageOutput: iteration.tokenUsage.output,
             timestamp: iteration.timestamp,
