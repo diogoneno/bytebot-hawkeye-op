@@ -31,6 +31,7 @@ import {
   MessageContentType,
   ToolResultContentBlock,
   TextContentBlock,
+  ImageContentBlock,
   ComputerDetectElementsToolUseBlock,
   ComputerClickElementToolUseBlock,
   Coordinates,
@@ -72,6 +73,11 @@ import {
   TrajectoryRecorderService,
   TrajectorySearchService,
   IterationSnapshot,
+  ObservationSnapshot,
+  GridMetadata,
+  CoordinateTelemetry,
+  ReplayMetadata,
+  ReplayActionMetadata,
 } from '../trajectory';
 
 type CachedDetectedElement = {
@@ -1025,31 +1031,6 @@ Do NOT take screenshots without acting. Do NOT repeat previous actions. Choose o
         taskId,
       });
 
-      // Record iteration for trajectory learning
-      try {
-        const systemPrompt = buildAgentSystemPrompt(currentDate, currentTime, timeZone);
-        const iterationSnapshot: IterationSnapshot = {
-          iterationNumber: iterationCount,
-          systemPrompt,
-          messages: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          toolCalls: messageContentBlocks.filter(
-            (b: MessageContentBlock) => b.type === MessageContentType.ToolUse,
-          ),
-          tokenUsage: {
-            input: agentResponse.tokenUsage.inputTokens,
-            output: agentResponse.tokenUsage.outputTokens,
-          },
-          timestamp: new Date(),
-        };
-
-        await this.trajectoryRecorder.recordIteration(taskId, iterationSnapshot);
-      } catch (error) {
-        this.logger.error(`Failed to record iteration: ${error.message}`);
-      }
-
       // Calculate if we need to summarize based on token usage
       const contextWindow = model.contextWindow || 200000; // Default to 200k if not specified
       const contextThreshold = contextWindow * 0.75;
@@ -1241,6 +1222,75 @@ Do NOT take screenshots without acting. Do NOT repeat previous actions. Choose o
           role: Role.USER,
           taskId,
         });
+      }
+
+      // Record iteration for trajectory learning (after tool results)
+      try {
+        const systemPrompt = buildAgentSystemPrompt(
+          currentDate,
+          currentTime,
+          timeZone,
+        );
+        const stepId = this.buildStepId(taskId, iterationCount);
+        const toolCalls = messageContentBlocks.filter(
+          (b: MessageContentBlock) => b.type === MessageContentType.ToolUse,
+        );
+        const obsPre = this.findLatestObservation(messages);
+        const { obsPost, observationByToolUseId } =
+          this.findObservationsFromToolResults(generatedToolResults);
+        const gridMetadata = this.buildGridMetadata(toolCalls, observationByToolUseId);
+        const coordinateTelemetry = this.buildCoordinateTelemetry(toolCalls);
+        const replayMetadata: ReplayMetadata = {
+          stepId,
+          iterationNumber: iterationCount,
+          actions: this.buildReplayActions(
+            toolCalls,
+            obsPre,
+            obsPost,
+            observationByToolUseId,
+            gridMetadata,
+            coordinateTelemetry,
+          ),
+        };
+        const iterationSnapshot: IterationSnapshot = {
+          stepId,
+          iterationNumber: iterationCount,
+          systemPrompt,
+          messages: [
+            ...messages.map((message) => ({
+              role: message.role,
+              content: message.content,
+            })),
+            {
+              role: Role.ASSISTANT,
+              content: messageContentBlocks,
+            },
+            ...(generatedToolResults.length > 0
+              ? [
+                  {
+                    role: Role.USER,
+                    content: generatedToolResults,
+                  },
+                ]
+              : []),
+          ],
+          toolCalls,
+          toolResults: generatedToolResults,
+          obsPre,
+          obsPost,
+          gridMetadata,
+          coordinateTelemetry,
+          replayMetadata,
+          tokenUsage: {
+            input: agentResponse.tokenUsage.inputTokens,
+            output: agentResponse.tokenUsage.outputTokens,
+          },
+          timestamp: new Date(),
+        };
+
+        await this.trajectoryRecorder.recordIteration(taskId, iterationSnapshot);
+      } catch (error) {
+        this.logger.error(`Failed to record iteration: ${error.message}`);
       }
 
       // Surface internal CV activity (OmniParser detections) that aren't from explicit tool calls
@@ -2278,6 +2328,263 @@ Do NOT take screenshots without acting. Do NOT repeat previous actions. Choose o
       );
       return true;
     }
+  }
+
+  private buildStepId(taskId: string, iterationNumber: number): string {
+    return `${taskId}:${iterationNumber}`;
+  }
+
+  private findLatestObservation(messages: Message[]): ObservationSnapshot | null {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      const content = message.content as MessageContentBlock[];
+      if (!Array.isArray(content)) {
+        continue;
+      }
+
+      for (const block of content) {
+        if (block.type !== MessageContentType.ToolResult) {
+          continue;
+        }
+
+        const observation = this.extractObservationFromToolResult(
+          block as ToolResultContentBlock,
+          'history',
+        );
+        if (observation) {
+          return observation;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private findObservationsFromToolResults(
+    toolResults: ToolResultContentBlock[],
+  ): {
+    obsPost: ObservationSnapshot | null;
+    observationByToolUseId: Map<string, ObservationSnapshot>;
+  } {
+    const observationByToolUseId = new Map<string, ObservationSnapshot>();
+    let obsPost: ObservationSnapshot | null = null;
+
+    for (const result of toolResults) {
+      const observation = this.extractObservationFromToolResult(result, 'tool_result');
+      if (observation) {
+        observationByToolUseId.set(result.tool_use_id, observation);
+        obsPost = observation;
+      }
+    }
+
+    return { obsPost, observationByToolUseId };
+  }
+
+  private extractObservationFromToolResult(
+    result: ToolResultContentBlock,
+    source: ObservationSnapshot['source'],
+  ): ObservationSnapshot | null {
+    const imageBlock = result.content.find(
+      (block): block is ImageContentBlock =>
+        block.type === MessageContentType.Image,
+    );
+    if (!imageBlock) {
+      return null;
+    }
+
+    const focusedMeta = this.parseFocusedRegionMetadata(result.content);
+
+    return {
+      image: imageBlock.source.data,
+      offset: focusedMeta?.offset,
+      region: focusedMeta?.region,
+      zoomLevel: focusedMeta?.zoomLevel,
+      gridOverlay: focusedMeta?.gridOverlay,
+      gridSize: focusedMeta?.gridSize,
+      timestamp: new Date(),
+      source,
+    };
+  }
+
+  private parseFocusedRegionMetadata(
+    content: MessageContentBlock[],
+  ): {
+    offset?: { x: number; y: number };
+    region?: { x: number; y: number; width: number; height: number };
+    zoomLevel?: number;
+    gridOverlay?: boolean | null;
+    gridSize?: number | null;
+  } | null {
+    for (const block of content) {
+      if (block.type !== MessageContentType.Text) {
+        continue;
+      }
+
+      const text = (block as TextContentBlock).text;
+      const prefix = 'Focused region metadata:';
+      if (!text.startsWith(prefix)) {
+        continue;
+      }
+
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.indexOf('}', jsonStart);
+      if (jsonStart === -1 || jsonEnd === -1) {
+        continue;
+      }
+
+      const jsonText = text.slice(jsonStart, jsonEnd + 1);
+      try {
+        const parsed = JSON.parse(jsonText) as {
+          offset?: { x: number; y: number };
+          region?: { x: number; y: number; width: number; height: number };
+          zoomLevel?: number;
+        };
+        return {
+          offset: parsed.offset,
+          region: parsed.region,
+          zoomLevel: parsed.zoomLevel,
+          gridOverlay: null,
+          gridSize: null,
+        };
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse focused region metadata: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  private buildGridMetadata(
+    toolCalls: MessageContentBlock[],
+    observationByToolUseId: Map<string, ObservationSnapshot>,
+  ): GridMetadata[] {
+    const metadata: GridMetadata[] = [];
+
+    for (const block of toolCalls) {
+      if (block.type !== MessageContentType.ToolUse) {
+        continue;
+      }
+
+      const toolUse = block as any;
+      if (typeof toolUse.name !== 'string' || !toolUse.name.startsWith('computer_')) {
+        continue;
+      }
+      const input = toolUse.input ?? {};
+      const observation = observationByToolUseId.get(toolUse.id);
+      const region =
+        typeof input.region === 'object' && input.region !== null
+          ? input.region
+          : null;
+
+      const gridEntry: GridMetadata = {
+        toolUseId: toolUse.id,
+        action: toolUse.name,
+        gridOverlay:
+          typeof input.gridOverlay === 'boolean' ? input.gridOverlay : null,
+        gridSize:
+          typeof input.gridSize === 'number' ? input.gridSize : input.gridSize ?? null,
+        region,
+        offset: observation?.offset ?? null,
+        zoomLevel: observation?.zoomLevel ?? null,
+        includeOffset:
+          typeof input.includeOffset === 'boolean' ? input.includeOffset : null,
+      };
+
+      const hasMetadata =
+        gridEntry.gridOverlay !== null ||
+        gridEntry.gridSize !== null ||
+        gridEntry.region !== null ||
+        gridEntry.offset !== null ||
+        gridEntry.zoomLevel !== null ||
+        gridEntry.includeOffset !== null;
+
+      if (hasMetadata) {
+        metadata.push(gridEntry);
+      }
+    }
+
+    return metadata;
+  }
+
+  private buildCoordinateTelemetry(
+    toolCalls: MessageContentBlock[],
+  ): CoordinateTelemetry[] {
+    const telemetry: CoordinateTelemetry[] = [];
+
+    for (const block of toolCalls) {
+      if (block.type !== MessageContentType.ToolUse) {
+        continue;
+      }
+
+      const toolUse = block as any;
+      if (typeof toolUse.name !== 'string' || !toolUse.name.startsWith('computer_')) {
+        continue;
+      }
+      const input = toolUse.input ?? {};
+      const coordinates = input.coordinates ?? null;
+      const fallbackCoordinates = input.fallback_coordinates ?? null;
+      const elementId = input.element_id ?? null;
+      const description = input.description ?? null;
+
+      const hasTelemetry =
+        coordinates !== null ||
+        fallbackCoordinates !== null ||
+        elementId !== null ||
+        description !== null;
+
+      if (!hasTelemetry) {
+        continue;
+      }
+
+      telemetry.push({
+        toolUseId: toolUse.id,
+        action: toolUse.name,
+        coordinates,
+        fallbackCoordinates,
+        elementId,
+        description,
+      });
+    }
+
+    return telemetry;
+  }
+
+  private buildReplayActions(
+    toolCalls: MessageContentBlock[],
+    obsPre: ObservationSnapshot | null,
+    obsPost: ObservationSnapshot | null,
+    observationByToolUseId: Map<string, ObservationSnapshot>,
+    gridMetadata: GridMetadata[],
+    coordinateTelemetry: CoordinateTelemetry[],
+  ): ReplayActionMetadata[] {
+    const gridByTool = new Map(
+      gridMetadata.map((entry) => [entry.toolUseId, entry]),
+    );
+    const coordByTool = new Map(
+      coordinateTelemetry.map((entry) => [entry.toolUseId, entry]),
+    );
+
+    return toolCalls
+      .filter((block) => block.type === MessageContentType.ToolUse)
+      .map((block) => {
+        const toolUse = block as any;
+        if (typeof toolUse.name !== 'string' || !toolUse.name.startsWith('computer_')) {
+          return null;
+        }
+        const obsPostForTool =
+          observationByToolUseId.get(toolUse.id) ?? obsPost ?? null;
+        return {
+          toolUseId: toolUse.id,
+          action: toolUse.name,
+          obsPre: obsPre ?? null,
+          obsPost: obsPostForTool,
+          gridMetadata: gridByTool.get(toolUse.id) ?? null,
+          coordinateTelemetry: coordByTool.get(toolUse.id) ?? null,
+        };
+      })
+      .filter((entry): entry is ReplayActionMetadata => entry !== null);
   }
 
   async stopProcessing(): Promise<void> {
